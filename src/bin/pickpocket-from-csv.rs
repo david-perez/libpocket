@@ -4,6 +4,15 @@ use std::env;
 use pickpocket::batch::BatchApp;
 use pickpocket::Status;
 
+/// First argument: file with URLs to ignore.
+/// Second argument: cache.
+/// Third argument: CSV in the format "url,?,folder", where folder = "Archive" or "Done"
+///
+/// Marks as read all the URLs in the CSV, provided they
+/// * are in the cache, and
+/// * are not in the ignore file.
+///
+/// Also prints out any URLs that are in the CSV but not in the cache.
 #[tokio::main]
 async fn main() {
     let app = BatchApp::default();

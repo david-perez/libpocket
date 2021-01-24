@@ -1,6 +1,12 @@
 use pickpocket::{FavoriteStatus, Status};
 use std::collections::BTreeSet;
 
+/// Re-marks:
+/// * all the favorite items as favorite, and
+/// * all the read items as read.
+///
+/// So the state of the items is the same, but the timestamp of the last action performed on them
+/// is reset to the current time.
 #[tokio::main]
 async fn main() {
     let client = match pickpocket::cli::client_from_env_vars() {
