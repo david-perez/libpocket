@@ -16,7 +16,7 @@ pub struct BatchApp {
     pub cache_client: FileClient,
     url_id: BTreeMap<String, String>,
     clean_url_id: BTreeMap<String, String>,
-    file_name: String,
+    file_name: String, // Filename containing *new* URLs we want to batch perform an action on.
 }
 
 impl Default for BatchApp {
