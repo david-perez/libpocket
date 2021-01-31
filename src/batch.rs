@@ -6,6 +6,11 @@ use std::io::{BufRead, BufReader, Lines};
 use crate::cleanup_url;
 use crate::cli::*;
 
+// Used in:
+// * pickpocket-batch-add.rs
+// * pickpocket-batch-favorite.rs
+// * pickpocket-batch-read.rs
+// * pickpocket-from-csv.rs
 pub struct BatchApp {
     pub client: Client,
     pub cache_client: FileClient,

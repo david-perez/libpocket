@@ -35,6 +35,15 @@ pub fn client_from_env_vars() -> Result<Client, String> {
     })
 }
 
+// Used directly in
+// * pickpocket-inspect.rs
+// * pickpocket-download.rs
+//
+// Used transitively in
+// * pickpocket-batch-add.rs
+// * pickpocket-batch-favorite.rs
+// * pickpocket-batch-read.rs
+// * pickpocket-from-csv.rs
 pub struct FileClient {
     list: ReadingList,
 }
