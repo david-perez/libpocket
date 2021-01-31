@@ -5,6 +5,7 @@ use serde_derive::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter, Result};
+use thiserror::Error;
 
 mod auth;
 pub mod batch;
@@ -353,6 +354,15 @@ impl Item {
     }
 }
 
+/// Any fallible operation by the client models its errors using one of this type's variants.
+#[derive(Error, Debug)]
+pub enum ClientError {
+    #[error("error parsing JSON response from Pocket API; response: {0}")]
+    ParseJSON(#[from] serde_json::Error),
+}
+
+type ClientResponse<T> = std::result::Result<T, ClientError>;
+
 impl Client {
     pub async fn mark_as_read<'a, T>(&self, ids: T)
     where
@@ -375,7 +385,7 @@ impl Client {
         self.modify(Action::Add, urls).await;
     }
 
-    pub async fn list_all(&self) -> ReadingList {
+    pub async fn list_all(&self) -> ClientResponse<ReadingList> {
         let mut reading_list: ReadingList = Default::default();
 
         let mut offset = 0;
@@ -398,17 +408,18 @@ impl Client {
             );
 
             let response = self.request(method, payload).await;
+
             match parse_all_response(&response) {
                 ResponseState::NoMore => break,
                 ResponseState::Parsed(parsed_response) => {
                     offset += 1;
-                    reading_list.extend(parsed_response.list.into_iter())
+                    reading_list.extend(parsed_response.list.into_iter());
                 }
-                ResponseState::Error(e) => panic!("Failed to parse the payload: {:?}", e),
+                ResponseState::Error(e) => return Err(ClientError::ParseJSON(e)),
             }
         }
 
-        reading_list
+        Ok(reading_list)
     }
 
     async fn modify<'a, T>(&self, action: Action, ids: T)

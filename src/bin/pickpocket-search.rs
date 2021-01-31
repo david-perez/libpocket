@@ -9,7 +9,7 @@ async fn main() {
         Err(e) => panic!("It wasn't possible to initialize a Pocket client\n{}", e),
     };
 
-    let reading_list = client.list_all().await;
+    let reading_list = client.list_all().await.unwrap();
     for (id, reading_item) in &reading_list {
         if reading_item.url().contains(&url) {
             println!(

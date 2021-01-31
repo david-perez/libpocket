@@ -11,7 +11,7 @@ async fn main() {
         Err(e) => panic!("It wasn't possible to initialize a Pocket client\n{}", e),
     };
 
-    let cli_client = FileClient::from_online(client.list_all().await);
+    let cli_client = FileClient::from_online(client.list_all().await.unwrap());
     cli_client
         .write_cache(&file_name)
         .expect("Could not write to cache");

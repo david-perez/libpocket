@@ -14,7 +14,7 @@ async fn main() {
         Err(e) => panic!("It wasn't possible to initialize a Pocket client\n{}", e),
     };
 
-    let reading_list = client.list_all().await;
+    let reading_list = client.list_all().await.unwrap();
     let mut favorites: BTreeSet<&str> = BTreeSet::new();
     let mut read: BTreeSet<&str> = BTreeSet::new();
 
