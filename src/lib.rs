@@ -260,6 +260,13 @@ struct ReadingListResponse {
     list: ReadingList,
 }
 
+#[derive(Deserialize)]
+struct EmptyReadingListResponse {
+    // Apparently, Pocket changes the "list" value from an object to an empty array when the
+    // response contains no items.
+    list: Vec<Item>,
+}
+
 enum ResponseState {
     Parsed(ReadingListResponse),
     NoMore,
@@ -468,13 +475,17 @@ impl Client {
 fn parse_all_response(response: &str) -> ResponseState {
     match serde_json::from_str::<ReadingListResponse>(response) {
         Ok(r) => ResponseState::Parsed(r),
-        Err(e) => {
-            if e.is_data() {
-                ResponseState::NoMore
-            } else {
-                ResponseState::Error(e)
+        Err(e) => match serde_json::from_str::<EmptyReadingListResponse>(response) {
+            Ok(r) => {
+                if r.list.is_empty() {
+                    ResponseState::NoMore
+                } else {
+                    // Received a non-empty array instead of an object for the key "list".
+                    ResponseState::Error(e)
+                }
             }
-        }
+            Err(_) => ResponseState::Error(e),
+        },
     }
 }
 
