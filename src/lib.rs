@@ -489,6 +489,8 @@ fn parse_all_response(response: &str) -> ResponseState {
         Err(e) => match serde_json::from_str::<EmptyReadingListResponse>(response) {
             Ok(r) => {
                 if r.list.is_empty() {
+                    // TODO I think the response sets '"status": 2' when there's no more, and list
+                    // gets set to an empty array.
                     ResponseState::NoMore
                 } else {
                     // Received a non-empty array instead of an object for the key "list".
