@@ -1,7 +1,10 @@
+use derive_builder::Builder;
 use hyper::{body, header, Body, Method, Request, Uri};
+use json_value_merge::Merge;
 use serde::de::{self, Deserialize, Deserializer, Unexpected};
 use serde::ser::Serializer;
 use serde_derive::{Deserialize, Serialize};
+use serde_json::json;
 use serde_with::{serde_as, DisplayFromStr};
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter, Result};
@@ -363,6 +366,103 @@ pub enum ClientError {
 
 type ClientResponse<T> = std::result::Result<T, ClientError>;
 
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum State {
+    /// Only return unread items (default).
+    Unread,
+    /// Only return archived items.
+    Archive,
+    /// Return both unread and archived items.
+    All,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        State::Unread
+    }
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub enum TagFilter {
+    /// Only return items tagged with a tag name.
+    TagName(String),
+    /// Only return untagged items.
+    #[serde(rename = "_untagged_")]
+    Untagged,
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum ContentType {
+    /// Only return articles.
+    Article,
+    /// Only return videos, or articles with embedded videos.
+    Video,
+    /// Only return images.
+    Image,
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum Sort {
+    /// Return items in order of newest to oldest.
+    Newest,
+    /// Return items in order of oldest to newest.
+    Oldest,
+    /// Return items in order of title alphabetically.
+    Title,
+    /// Return items in order of URL alphabetically.
+    Site,
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum DetailType {
+    /// Return basic information about each item, including title, URL, status, and more.
+    Simple,
+    /// Return all data about each item, including tags, images, authors, videos, and more.
+    Complete,
+}
+
+#[serde_with::skip_serializing_none]
+#[builder(default)]
+#[derive(Serialize, Builder, Default)]
+pub struct GetInput {
+    /// Filter by unread or archived items.
+    state: Option<State>,
+
+    /// Filter by item favorite status.
+    favorite: Option<FavoriteStatus>,
+
+    /// Filter by item tag.
+    tag: Option<TagFilter>,
+
+    /// Filter by item content type (article, video, image).
+    content_type: Option<ContentType>,
+
+    /// Sort by newest, oldest, title, or site.
+    sort: Option<Sort>,
+
+    /// Return basic information or all information about an item.
+    detail_type: Option<DetailType>,
+
+    /// Only return items whose title or url contain the search string.
+    search: Option<String>,
+
+    /// Only return items from a particular domain.
+    domain: Option<String>,
+
+    /// Only return items modified since the given since UNIX timestamp.
+    since: Option<u64>,
+
+    /// Only return count number of items.
+    count: Option<u32>,
+
+    /// Used only with count; start returning from offset position of results.
+    offset: Option<u32>,
+}
+
 impl Client {
     pub async fn mark_as_read<'a, T>(&self, ids: T)
     where
@@ -385,6 +485,36 @@ impl Client {
         self.modify(Action::Add, urls).await;
     }
 
+    fn auth(&self) -> serde_json::Value {
+        json!({
+            "consumer_key": &self.consumer_key,
+            "access_token": &self.authorization_code,
+        })
+    }
+
+    pub async fn get(&self, get_input: &GetInput) -> ClientResponse<ReadingList> {
+        let mut reading_list: ReadingList = Default::default();
+
+        let method = url("/get");
+
+        let mut payload =
+            serde_json::to_value(get_input).expect("Unable to convert input to JSON value");
+
+        payload.merge(self.auth());
+
+        let response = self.request(method, payload.to_string()).await;
+
+        match parse_all_response(&response) {
+            ResponseState::NoMore => (),
+            ResponseState::Parsed(parsed_response) => {
+                reading_list.extend(parsed_response.list.into_iter());
+            }
+            ResponseState::Error(e) => return Err(ClientError::ParseJSON(e)),
+        }
+
+        Ok(reading_list)
+    }
+
     pub async fn list_all(&self) -> ClientResponse<ReadingList> {
         let mut reading_list: ReadingList = Default::default();
 
@@ -392,22 +522,22 @@ impl Client {
 
         loop {
             let method = url("/get");
-            let payload = format!(
-                r##"{{ "consumer_key":"{}",
-                               "access_token":"{}",
-                               "sort":"site",
-                               "state":"all",
-                               "detailType":"simple",
-                               "count":"{}",
-                               "offset":"{}"
-                               }}"##,
-                &self.consumer_key,
-                &self.authorization_code,
-                DEFAULT_COUNT,
-                (offset * DEFAULT_COUNT)
-            );
 
-            let response = self.request(method, payload).await;
+            let get_input = GetInputBuilder::default()
+                .sort(Some(Sort::Site))
+                .state(Some(State::All))
+                .detail_type(Some(DetailType::Complete))
+                .count(Some(DEFAULT_COUNT))
+                .offset(Some(offset * DEFAULT_COUNT))
+                .build()
+                .unwrap();
+
+            let mut payload =
+                serde_json::to_value(get_input).expect("Unable to convert input to JSON value");
+
+            payload.merge(self.auth());
+
+            let response = self.request(method, payload.to_string()).await;
 
             match parse_all_response(&response) {
                 ResponseState::NoMore => break,
