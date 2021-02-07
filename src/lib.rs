@@ -17,6 +17,8 @@ pub use auth::*;
 
 const DEFAULT_COUNT: u32 = 5000;
 
+pub type ItemId = String;
+
 /// A Pocket item.
 /// The official API docs state that all members are optional. However, empirically it seems safe
 /// to assume that the ones that are not `Option`s are always present.
@@ -25,7 +27,7 @@ const DEFAULT_COUNT: u32 = 5000;
 pub struct Item {
     /// A unique identifier matching the saved item. This id must be used to perform any actions
     /// through the v3/modify endpoint.
-    pub item_id: String,
+    pub item_id: ItemId,
 
     /// A unique identifier similar to the item_id but is unique to the actual url of the saved
     /// item. The resolved_id identifies unique urls. For example a direct link to a New York Times
@@ -257,7 +259,7 @@ pub struct Tag {
     pub tag: String,
 }
 
-pub type ReadingList = BTreeMap<String, Item>;
+pub type ReadingList = BTreeMap<ItemId, Item>;
 
 #[derive(Deserialize)]
 struct ReadingListResponse {
