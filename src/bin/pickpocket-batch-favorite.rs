@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
-use pickpocket::batch::BatchApp;
 use pickpocket::FavoriteStatus;
+use pickpocket::{batch::BatchApp, ItemOrDeletedItem};
 
 #[tokio::main]
 async fn main() {
@@ -15,13 +15,15 @@ async fn main() {
         let url = line.expect("Could not read line");
         match app.get(&url as &str) {
             Some(id) => {
-                let item = cache_reading_list.get(id).expect("cant locate id");
-                if item.favorite == FavoriteStatus::NotFavorited {
+                let reading_item = cache_reading_list.get(id).expect("cant locate id");
+                if let ItemOrDeletedItem::Item(item) = reading_item {
+                    if item.favorite == FavoriteStatus::NotFavorited {
+                        ids.insert(id);
+                    } else {
+                        println!("Url {} already marked as favorite", url);
+                    }
                     ids.insert(id);
-                } else {
-                    println!("Url {} already marked as favorite", url);
                 }
-                ids.insert(id);
             }
             None => println!("Url {} did not match", &url),
         }

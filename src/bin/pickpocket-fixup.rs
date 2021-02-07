@@ -1,4 +1,4 @@
-use pickpocket::{FavoriteStatus, Status};
+use pickpocket::{FavoriteStatus, ItemOrDeletedItem, Status};
 use std::collections::BTreeSet;
 
 /// Re-marks:
@@ -19,12 +19,14 @@ async fn main() {
     let mut read: BTreeSet<&str> = BTreeSet::new();
 
     for (id, reading_item) in &reading_list {
-        if reading_item.favorite == FavoriteStatus::Favorited {
-            favorites.insert(id);
-        }
+        if let ItemOrDeletedItem::Item(item) = reading_item {
+            if item.favorite == FavoriteStatus::Favorited {
+                favorites.insert(id);
+            }
 
-        if reading_item.status == Status::Read {
-            read.insert(id);
+            if item.status == Status::Read {
+                read.insert(id);
+            }
         }
     }
 

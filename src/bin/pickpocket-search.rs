@@ -1,5 +1,7 @@
 use std::env;
 
+use pickpocket::ItemOrDeletedItem;
+
 #[tokio::main]
 async fn main() {
     let url = env::args().nth(1).expect("Expected an needle as argument");
@@ -11,18 +13,20 @@ async fn main() {
 
     let reading_list = client.list_all().await.unwrap();
     for (id, reading_item) in &reading_list {
-        if reading_item.url().contains(&url) {
-            println!(
-                "Id:\t{id}
-Reading Item:\t{reading_item:?}
+        if let ItemOrDeletedItem::Item(item) = reading_item {
+            if item.url().contains(&url) {
+                println!(
+                    "Id:\t{id}
+Reading Item:\t{item:?}
 Used url:\t{url}
 Cleaned url:\t{clean}
 ",
-                id = id,
-                reading_item = reading_item,
-                url = reading_item.url(),
-                clean = pickpocket::cleanup_url(reading_item.url())
-            );
+                    id = id,
+                    item = item,
+                    url = item.url(),
+                    clean = pickpocket::cleanup_url(item.url())
+                );
+            }
         }
     }
 }

@@ -1,5 +1,7 @@
 use std::env;
 
+use pickpocket::ItemOrDeletedItem;
+
 fn main() {
     let file_name = env::args().nth(1).expect("Expected an file as argument");
 
@@ -11,12 +13,14 @@ fn main() {
     let reading_list = client.list_all();
 
     for reading_item in reading_list.values() {
-        println!(
-            "{title} | {url} | {clean} | {status}",
-            url = reading_item.url(),
-            clean = pickpocket::cleanup_url(reading_item.url()),
-            title = reading_item.title(),
-            status = reading_item.status
-        );
+        if let ItemOrDeletedItem::Item(item) = reading_item {
+            println!(
+                "{title} | {url} | {clean} | {status}",
+                url = item.url(),
+                clean = pickpocket::cleanup_url(item.url()),
+                title = item.title(),
+                status = item.status
+            );
+        }
     }
 }

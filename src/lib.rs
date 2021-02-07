@@ -120,6 +120,23 @@ pub struct Item {
     pub image: Option<MainImage>,
 }
 
+/// An `Item` that should be deleted.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DeletedItem {
+    pub item_id: ItemId,
+    // Pocket also returns a "status" field which is set to 2, meaning "this item should be
+    // deleted", as documented in the docs.
+    // For some reason, Pocket's API also returns a "listen_duration_estimate" field.
+    // We ignore those two fields here.
+}
+
+#[serde(untagged)]
+#[derive(Serialize, Deserialize, Debug)]
+pub enum ItemOrDeletedItem {
+    Item(Item),
+    DeletedItem(DeletedItem),
+}
+
 fn deserialize_string_to_bool<'de, D>(deserializer: D) -> std::result::Result<bool, D::Error>
 where
     D: Deserializer<'de>,
@@ -259,7 +276,7 @@ pub struct Tag {
     pub tag: String,
 }
 
-pub type ReadingList = BTreeMap<ItemId, Item>;
+pub type ReadingList = BTreeMap<ItemId, ItemOrDeletedItem>;
 
 #[derive(Deserialize)]
 struct ReadingListResponse {

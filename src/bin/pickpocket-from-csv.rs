@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
 use std::env;
 
-use pickpocket::batch::BatchApp;
 use pickpocket::Status;
+use pickpocket::{batch::BatchApp, ItemOrDeletedItem};
 
 /// First argument: file with URLs to ignore.
 /// Second argument: cache.
@@ -50,9 +50,10 @@ async fn main() {
             }
             Some(id) => {
                 let pocket_item = cache_reading_list.get(id).expect("cant locate id");
-                if pocket_item.status == Status::Unread && (folder == "Archive" || folder == "Done")
-                {
-                    read_ids.insert(id);
+                if let ItemOrDeletedItem::Item(item) = pocket_item {
+                    if item.status == Status::Unread && (folder == "Archive" || folder == "Done") {
+                        read_ids.insert(id);
+                    }
                 }
             }
         }

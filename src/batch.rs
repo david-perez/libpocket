@@ -3,8 +3,8 @@ use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Lines};
 
-use crate::cleanup_url;
 use crate::cli::*;
+use crate::{cleanup_url, ItemOrDeletedItem};
 
 // Used in:
 // * pickpocket-batch-add.rs
@@ -43,8 +43,10 @@ impl Default for BatchApp {
         {
             let reading_list = cache_client.list_all();
             for (id, reading_item) in reading_list {
-                url_id.insert(reading_item.url().into(), id.clone());
-                clean_url_id.insert(cleanup_url(reading_item.url()), id.clone());
+                if let ItemOrDeletedItem::Item(item) = reading_item {
+                    url_id.insert(item.url().into(), id.clone());
+                    clean_url_id.insert(cleanup_url(item.url()), id.clone());
+                }
             }
         }
 
