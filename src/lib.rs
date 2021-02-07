@@ -523,6 +523,8 @@ impl Client {
 
         let response = self.request(method, payload.to_string()).await;
 
+        dbg!(&response);
+
         match parse_all_response(&response) {
             ResponseState::NoMore => (),
             ResponseState::Parsed(parsed_response) => {
@@ -557,6 +559,8 @@ impl Client {
             payload.merge(self.auth());
 
             let response = self.request(method, payload.to_string()).await;
+
+            dbg!(&response);
 
             match parse_all_response(&response) {
                 ResponseState::NoMore => break,
