@@ -464,6 +464,7 @@ pub struct GetInput {
     sort: Option<Sort>,
 
     /// Return basic information or all information about an item.
+    #[serde(rename = "detailType")]
     detail_type: Option<DetailType>,
 
     /// Only return items whose title or url contain the search string.
