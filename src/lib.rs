@@ -187,7 +187,7 @@ impl Client {
 
         dbg!(&response);
 
-        match parse_all_response(&response) {
+        match parse_get_response(&response) {
             ResponseState::NoMore => (),
             ResponseState::Parsed(parsed_response) => {
                 reading_list.extend(parsed_response.list.into_iter());
@@ -224,7 +224,7 @@ impl Client {
 
             dbg!(&response);
 
-            match parse_all_response(&response) {
+            match parse_get_response(&response) {
                 ResponseState::NoMore => break,
                 ResponseState::Parsed(parsed_response) => {
                     offset += 1;
@@ -298,7 +298,7 @@ impl Client {
     }
 }
 
-fn parse_all_response(response: &str) -> ResponseState {
+fn parse_get_response(response: &str) -> ResponseState {
     match serde_json::from_str::<ReadingListResponse>(response) {
         Ok(r) => ResponseState::Parsed(r),
         Err(e) => match serde_json::from_str::<EmptyReadingListResponse>(response) {
@@ -450,7 +450,7 @@ mod test {
 #[test]
 fn test_decoding_empty_object_list() {
     let response = r#"{ "list": {}}"#;
-    match parse_all_response(&response) {
+    match parse_get_response(&response) {
         ResponseState::Parsed(_) => (),
         _ => panic!("This should have been parsed"),
     }
@@ -459,7 +459,7 @@ fn test_decoding_empty_object_list() {
 #[test]
 fn test_decoding_empty_pocket_list() {
     let response = r#"{ "list": []}"#;
-    match parse_all_response(&response) {
+    match parse_get_response(&response) {
         ResponseState::NoMore => (),
         _ => panic!("This should signal an empty list"),
     }
@@ -468,7 +468,7 @@ fn test_decoding_empty_pocket_list() {
 #[test]
 fn test_decoding_error() {
     let response = r#"{ "list": "#;
-    match parse_all_response(&response) {
+    match parse_get_response(&response) {
         ResponseState::Error(_) => (),
         _ => panic!("This should fail to parse"),
     }
