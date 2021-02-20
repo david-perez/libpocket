@@ -20,7 +20,7 @@ struct ReadingListResponse {
 
 #[derive(Deserialize)]
 struct EmptyReadingListResponse {
-    // Apparently, Pocket changes the "list" value from an object to an empty array when the
+    // Apparently, Pocket changes the "list" value from an object to an empty JSON array when the
     // response contains no items.
     list: Vec<Item>,
 }

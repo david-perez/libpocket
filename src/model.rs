@@ -1,9 +1,7 @@
 use serde::de::{self, Deserialize, Deserializer, Unexpected};
-use serde::ser::Serializer;
 use serde_derive::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use std::collections::BTreeMap;
-use std::fmt::{Display, Formatter};
 
 pub type ItemId = String;
 
@@ -11,7 +9,7 @@ pub type ItemId = String;
 /// The official API docs state that all members are optional. However, empirically it seems safe
 /// to assume that the ones that are not `Option`s are always present.
 #[serde_as]
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Item {
     /// A unique identifier matching the saved item. This id must be used to perform any actions
     /// through the v3/modify endpoint.
@@ -50,7 +48,6 @@ pub struct Item {
 
     /// Whether the item is an article or not.
     #[serde(deserialize_with = "deserialize_string_to_bool")]
-    #[serde(serialize_with = "serialize_bool_to_string")]
     pub is_article: bool,
 
     /// Whether the item has/is an image.
@@ -84,7 +81,6 @@ pub struct Item {
     pub sort_id: u32,
 
     #[serde(deserialize_with = "deserialize_string_to_bool")]
-    #[serde(serialize_with = "serialize_bool_to_string")]
     pub is_index: bool,
 
     /// Language code. This is sometimes set to an empty string.
@@ -109,7 +105,7 @@ pub struct Item {
 }
 
 /// An `Item` that should be deleted.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct DeletedItem {
     pub item_id: ItemId,
     // Pocket also returns a "status" field which is set to 2, meaning "this item should be
@@ -119,7 +115,7 @@ pub struct DeletedItem {
 }
 
 #[serde(untagged)]
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub enum ItemOrDeletedItem {
     Item(Item),
     DeletedItem(DeletedItem),
@@ -136,14 +132,7 @@ where
     }
 }
 
-fn serialize_bool_to_string<S>(b: &bool, serializer: S) -> std::result::Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    serializer.serialize_str(if *b { "1" } else { "0" })
-}
-
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct DomainMetadata {
     pub name: Option<String>,
     pub logo: String,
@@ -153,7 +142,7 @@ pub struct DomainMetadata {
 /// The main image associated with an `Item`.
 /// Same as an `Image`, except the `image_id`, `credit`, and `caption` fields are not present.
 #[serde_as]
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct MainImage {
     /// The `Item`'s `item_id` this image is associated with.
     pub item_id: String,
@@ -172,7 +161,7 @@ pub struct MainImage {
 
 /// An image associated with an `Item`.
 #[serde_as]
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Image {
     /// The `Item`'s `item_id` this image is associated with.
     pub item_id: String,
@@ -203,7 +192,7 @@ pub struct Image {
 }
 
 #[serde_as]
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Video {
     /// The `Item`'s `item_id` this video is associated with.
     pub item_id: String,
@@ -237,7 +226,7 @@ pub struct Video {
     pub length: Option<u32>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Author {
     /// The `Item`'s `item_id` this author is associated with.
     pub item_id: String,
@@ -255,7 +244,7 @@ pub struct Author {
     pub url: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Tag {
     /// The `Item`'s `item_id` this tag is applied to.
     pub item_id: String,
@@ -272,7 +261,7 @@ pub enum FavoriteStatus {
     Favorited,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[derive(Deserialize, Clone, PartialEq, Debug)]
 pub enum Status {
     #[serde(rename = "0")]
     Unread,
@@ -282,7 +271,7 @@ pub enum Status {
     ShouldBeDeleted,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[derive(Deserialize, Clone, PartialEq, Debug)]
 pub enum HasImage {
     #[serde(rename = "0")]
     No,
@@ -292,7 +281,7 @@ pub enum HasImage {
     IsImage,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[derive(Deserialize, Clone, PartialEq, Debug)]
 pub enum HasVideo {
     #[serde(rename = "0")]
     No,
@@ -300,44 +289,6 @@ pub enum HasVideo {
     Yes,
     #[serde(rename = "2")]
     IsVideo,
-}
-
-// TODO Remove or #[derive].
-impl Display for Status {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match *self {
-                Status::Read => "Read",
-                Status::Unread => "Unread",
-                Status::ShouldBeDeleted => "ShouldBeDeleted",
-            }
-        )
-    }
-}
-
-// TODO Remove once we delete the binaries.
-impl Item {
-    pub fn url(&self) -> &str {
-        if !self.resolved_url.is_empty() {
-            &self.resolved_url
-        } else {
-            &self.given_url
-        }
-    }
-
-    pub fn title(&self) -> &str {
-        if self.resolved_title.is_empty() {
-            if self.given_title.is_empty() {
-                self.url()
-            } else {
-                &self.given_title
-            }
-        } else {
-            &self.resolved_title
-        }
-    }
 }
 
 pub type ReadingList = BTreeMap<ItemId, ItemOrDeletedItem>;
