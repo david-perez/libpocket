@@ -8,8 +8,6 @@ use thiserror::Error;
 mod auth;
 mod model;
 
-pub mod batch;
-pub mod cli;
 pub use auth::*;
 pub use model::*;
 
