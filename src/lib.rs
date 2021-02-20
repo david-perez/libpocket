@@ -7,7 +7,7 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::json;
 use serde_with::{serde_as, DisplayFromStr};
 use std::collections::BTreeMap;
-use std::fmt::{Display, Formatter, Result};
+use std::fmt::{Display, Formatter};
 use thiserror::Error;
 
 mod auth;
@@ -341,7 +341,7 @@ pub enum HasVideo {
 }
 
 impl Display for Status {
-    fn fmt(&self, f: &mut Formatter) -> Result {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(
             f,
             "{}",
