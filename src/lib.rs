@@ -28,7 +28,6 @@ struct EmptyReadingListResponse {
 enum ResponseState {
     Parsed(ReadingListResponse),
     NoMore,
-    Error(serde_json::Error),
 }
 
 enum Action {
@@ -174,8 +173,6 @@ impl Client {
     }
 
     pub async fn get(&self, get_input: &GetInput) -> ClientResponse<ReadingList> {
-        let mut reading_list: ReadingList = Default::default();
-
         let method = url("/get");
 
         let mut payload =
@@ -187,12 +184,14 @@ impl Client {
 
         dbg!(&response);
 
+        let mut reading_list: ReadingList = Default::default();
+
         match parse_get_response(&response) {
-            ResponseState::NoMore => (),
-            ResponseState::Parsed(parsed_response) => {
+            Ok(ResponseState::NoMore) => (),
+            Ok(ResponseState::Parsed(parsed_response)) => {
                 reading_list.extend(parsed_response.list.into_iter());
             }
-            ResponseState::Error(e) => return Err(ClientError::ParseJSON(e)),
+            Err(e) => return Err(ClientError::ParseJSON(e)),
         }
 
         Ok(reading_list)
@@ -225,12 +224,12 @@ impl Client {
             dbg!(&response);
 
             match parse_get_response(&response) {
-                ResponseState::NoMore => break,
-                ResponseState::Parsed(parsed_response) => {
+                Ok(ResponseState::NoMore) => break,
+                Ok(ResponseState::Parsed(parsed_response)) => {
                     offset += 1;
                     reading_list.extend(parsed_response.list.into_iter());
                 }
-                ResponseState::Error(e) => return Err(ClientError::ParseJSON(e)),
+                Err(e) => return Err(ClientError::ParseJSON(e)),
             }
         }
 
@@ -298,21 +297,21 @@ impl Client {
     }
 }
 
-fn parse_get_response(response: &str) -> ResponseState {
+fn parse_get_response(response: &str) -> Result<ResponseState, serde_json::Error> {
     match serde_json::from_str::<ReadingListResponse>(response) {
-        Ok(r) => ResponseState::Parsed(r),
+        Ok(r) => Ok(ResponseState::Parsed(r)),
         Err(e) => match serde_json::from_str::<EmptyReadingListResponse>(response) {
             Ok(r) => {
                 if r.list.is_empty() {
                     // TODO I think the response sets '"status": 2' when there's no more, and list
                     // gets set to an empty array.
-                    ResponseState::NoMore
+                    Ok(ResponseState::NoMore)
                 } else {
                     // Received a non-empty array instead of an object for the key "list".
-                    ResponseState::Error(e)
+                    Err(e)
                 }
             }
-            Err(_) => ResponseState::Error(e),
+            Err(_) => Err(e),
         },
     }
 }
@@ -325,7 +324,7 @@ mod tests {
     fn deserialize_empty_list_object() {
         let response = r#"{ "list": {}}"#;
         match parse_get_response(&response) {
-            ResponseState::Parsed(_) => (),
+            Ok(ResponseState::Parsed(_)) => (),
             _ => panic!("This should have been parsed"),
         }
     }
@@ -333,19 +332,16 @@ mod tests {
     #[test]
     fn deserialize_empty_list_array() {
         let response = r#"{ "list": []}"#;
-        // TODO Assert directly.
         match parse_get_response(&response) {
-            ResponseState::NoMore => (),
+            Ok(ResponseState::NoMore) => (),
             _ => panic!("This should signal an empty list"),
         }
     }
 
     #[test]
+    #[should_panic]
     fn deserialize_unparseable_response() {
         let response = r#"{ "list": "#;
-        match parse_get_response(&response) {
-            ResponseState::Error(_) => (),
-            _ => panic!("This should fail to parse"),
-        }
+        parse_get_response(&response).unwrap();
     }
 }
