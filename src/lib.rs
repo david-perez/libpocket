@@ -317,159 +317,35 @@ fn parse_get_response(response: &str) -> ResponseState {
     }
 }
 
-fn fixup_blogspot(url: &str) -> String {
-    let split: Vec<_> = url.split(".blogspot.").collect();
-    if split.len() == 2 {
-        format!("{}.blogspot.com", split[0])
-    } else {
-        url.into()
-    }
-}
-
-fn start_domain_from(url: &str) -> usize {
-    if url.starts_with("www.") {
-        4
-    } else {
-        0
-    }
-}
-
-fn cleanup_path(path: &str) -> &str {
-    path.trim_end_matches("index.html")
-        .trim_end_matches("index.php")
-        .trim_end_matches('/')
-}
-
-pub fn cleanup_url(url: &str) -> String {
-    if let Ok(parsed) = url.parse::<Uri>() {
-        let current_host = parsed.host().expect("Cleaned up an url without a host");
-        let starts_from = start_domain_from(current_host);
-
-        format!(
-            "https://{}{}",
-            fixup_blogspot(&current_host[starts_from..]),
-            cleanup_path(parsed.path())
-        )
-    } else {
-        url.into()
-    }
-}
-
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
     #[test]
-    fn test_clean_url_hash() {
-        let url_ = "http://example.com#asdfas.fsa";
-        assert_eq!(cleanup_url(url_), "https://example.com");
+    fn deserialize_empty_list_object() {
+        let response = r#"{ "list": {}}"#;
+        match parse_get_response(&response) {
+            ResponseState::Parsed(_) => (),
+            _ => panic!("This should have been parsed"),
+        }
     }
 
     #[test]
-    fn test_clean_url_query() {
-        let url_ = "http://example.com?";
-        assert_eq!(cleanup_url(url_), "https://example.com");
+    fn deserialize_empty_list_array() {
+        let response = r#"{ "list": []}"#;
+        // TODO Assert directly.
+        match parse_get_response(&response) {
+            ResponseState::NoMore => (),
+            _ => panic!("This should signal an empty list"),
+        }
     }
 
     #[test]
-    fn test_clean_url_keep_same_url() {
-        let url_ = "http://another.example.com";
-        assert_eq!(cleanup_url(url_), "https://another.example.com");
-    }
-
-    #[test]
-    fn test_clean_url_keep_https() {
-        let url = "https://another.example.com";
-        assert_eq!(cleanup_url(url), "https://another.example.com");
-    }
-
-    #[test]
-    fn test_cleanup_blogspot_first_tld() {
-        let url = "https://this-is-a.blogspot.cl/asdf/asdf/asdf?asdf=1";
-        assert_eq!(
-            cleanup_url(url),
-            "https://this-is-a.blogspot.com/asdf/asdf/asdf"
-        );
-    }
-
-    #[test]
-    fn test_cleanup_blogspot_second_tld() {
-        let url = "https://this-is-a.blogspot.com.br/asdf/asdf/asdf?asdf=1";
-        assert_eq!(
-            cleanup_url(url),
-            "https://this-is-a.blogspot.com/asdf/asdf/asdf"
-        );
-    }
-
-    #[test]
-    fn test_cleanup_www() {
-        let url = "https://www.this-is-a.blogspot.com.br/asdf/asdf/asdf?asdf=1";
-        assert_eq!(
-            cleanup_url(url),
-            "https://this-is-a.blogspot.com/asdf/asdf/asdf"
-        );
-    }
-
-    #[test]
-    fn test_cleanup_https_redirection() {
-        let url = "http://www.this-is-a.blogspot.com.br/asdf/asdf/asdf?asdf=2";
-        assert_eq!(
-            cleanup_url(url),
-            "https://this-is-a.blogspot.com/asdf/asdf/asdf"
-        );
-    }
-
-    #[test]
-    fn test_cleanup_urls_are_the_same() {
-        let url1 = cleanup_url("https://example.com/hello");
-        let url2 = cleanup_url("https://example.com/hello/");
-        assert_eq!(url1, url2);
-    }
-
-    #[test]
-    fn test_cleanup_urls_without_index() {
-        let url = "https://example.com/index.php";
-        assert_eq!(cleanup_url(url), "https://example.com");
-    }
-
-    #[test]
-    fn test_cleanup_urls_without_index_html() {
-        let url = "https://example.com/index.html";
-        assert_eq!(cleanup_url(url), cleanup_url("https://example.com/"));
-    }
-
-    #[test]
-    fn test_dot_on_files() {
-        assert_eq!(
-            cleanup_url("https://jenkins.io/2.0/index.html"),
-            cleanup_url("https://jenkins.io/2.0/")
-        );
-    }
-}
-
-#[test]
-fn test_decoding_empty_object_list() {
-    let response = r#"{ "list": {}}"#;
-    match parse_get_response(&response) {
-        ResponseState::Parsed(_) => (),
-        _ => panic!("This should have been parsed"),
-    }
-}
-
-#[test]
-fn test_decoding_empty_pocket_list() {
-    let response = r#"{ "list": []}"#;
-    match parse_get_response(&response) {
-        ResponseState::NoMore => (),
-        _ => panic!("This should signal an empty list"),
-    }
-}
-
-#[test]
-fn test_decoding_error() {
-    let response = r#"{ "list": "#;
-    match parse_get_response(&response) {
-        ResponseState::Error(_) => (),
-        _ => panic!("This should fail to parse"),
+    fn deserialize_unparseable_response() {
+        let response = r#"{ "list": "#;
+        match parse_get_response(&response) {
+            ResponseState::Error(_) => (),
+            _ => panic!("This should fail to parse"),
+        }
     }
 }
