@@ -206,7 +206,6 @@ impl Client {
             let method = url("/get");
 
             let get_input = GetInputBuilder::default()
-                .sort(Some(Sort::Site))
                 .state(Some(State::All))
                 .detail_type(Some(DetailType::Complete))
                 .count(Some(DEFAULT_COUNT))
@@ -221,7 +220,7 @@ impl Client {
 
             let response = self.request(method, payload.to_string()).await;
 
-            dbg!(&response);
+            // dbg!(&response);
 
             match parse_get_response(&response) {
                 Ok(ResponseState::NoMore) => break,
