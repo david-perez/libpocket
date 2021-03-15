@@ -145,11 +145,13 @@ pub struct GetInput {
 }
 
 impl Client {
-    pub async fn archive<'a, T>(&self, ids: T)
+    pub async fn archive<'a, T>(&self, items: T)
     where
-        T: IntoIterator<Item = &'a str>,
+        T: IntoIterator<Item = &'a Item>,
     {
-        self.modify(Action::Archive, ids).await;
+        let item_ids = items.into_iter().map(|item| item.item_id.as_str());
+
+        self.modify(Action::Archive, item_ids).await;
     }
 
     pub async fn mark_as_favorite<'a, T>(&self, ids: T)
@@ -192,7 +194,7 @@ impl Client {
 
         let response = self.request(method, payload.to_string()).await;
 
-        dbg!(&response);
+        // dbg!(&response);
 
         let mut reading_list: ReadingList = Default::default();
 
@@ -303,7 +305,11 @@ impl Client {
             .await
             .expect("Could not read the HTTP request's body");
 
-        String::from_utf8(body_bytes.to_vec()).expect("Response was not valid UTF-8")
+        let ret = String::from_utf8(body_bytes.to_vec()).expect("Response was not valid UTF-8");
+
+        // dbg!(&ret);
+
+        ret
     }
 }
 
