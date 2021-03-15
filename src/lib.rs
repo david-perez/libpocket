@@ -164,11 +164,13 @@ impl Client {
         self.modify(Action::Readd, item_ids).await;
     }
 
-    pub async fn mark_as_favorite<'a, T>(&self, ids: T)
+    pub async fn favorite<'a, T>(&self, items: T)
     where
-        T: IntoIterator<Item = &'a str>,
+        T: IntoIterator<Item = &'a Item>,
     {
-        self.modify(Action::Favorite, ids).await;
+        let item_ids = items.into_iter().map(|item| item.item_id.as_str());
+
+        self.modify(Action::Favorite, item_ids).await;
     }
 
     pub async fn add_urls<'a, T>(&self, urls: T)
