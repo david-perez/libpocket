@@ -31,10 +31,11 @@ enum ResponseState {
 }
 
 enum Action {
-    Archive,
-    Favorite,
     Add,
+    Archive,
     Delete,
+    Favorite,
+    Readd,
 }
 
 /// Any fallible operation by the client models its errors using one of this type's variants.
@@ -154,6 +155,15 @@ impl Client {
         self.modify(Action::Archive, item_ids).await;
     }
 
+    pub async fn readd<'a, T>(&self, items: T)
+    where
+        T: IntoIterator<Item = &'a Item>,
+    {
+        let item_ids = items.into_iter().map(|item| item.item_id.as_str());
+
+        self.modify(Action::Readd, item_ids).await;
+    }
+
     pub async fn mark_as_favorite<'a, T>(&self, ids: T)
     where
         T: IntoIterator<Item = &'a str>,
@@ -253,10 +263,11 @@ impl Client {
     {
         let method = url("/send");
         let action_verb = match action {
-            Action::Favorite => "favorite",
-            Action::Archive => "archive",
             Action::Add => "add",
+            Action::Archive => "archive",
             Action::Delete => "delete",
+            Action::Favorite => "favorite",
+            Action::Readd => "readd",
         };
         let item_key = match action {
             Action::Add => "url",
