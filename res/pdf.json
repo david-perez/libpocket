@@ -1,0 +1,33 @@
+{
+    "item_id": "3219982386",
+    "resolved_id": "3219982386",
+    "given_url": "https://www.fit.vut.cz/research/publication-file/10979/WhatsApp.pdf",
+    "given_title": "",
+    "favorite": "0",
+    "status": "0",
+    "time_added": "1609781298",
+    "time_updated": "1611505724",
+    "time_read": "0",
+    "time_favorited": "0",
+    "sort_id": 3,
+    "resolved_title": "",
+    "resolved_url": "https://www.fit.vut.cz/research/publication-file/10979/WhatsApp.pdf",
+    "excerpt": "",
+    "is_article": "0",
+    "is_index": "0",
+    "has_video": "0",
+    "has_image": "0",
+    "word_count": "0",
+    "lang": "",
+    "tags": {
+        "tag1": {
+            "item_id": "3219982386",
+            "tag": "tag1"
+        },
+        "tag2": {
+            "item_id": "3219982386",
+            "tag": "tag2"
+        }
+    },
+    "listen_duration_estimate": 0
+}

@@ -1,0 +1,72 @@
+{
+    "item_id": "2201364997",
+    "resolved_id": "2201364997",
+    "given_url": "https://medium.com/makingtuenti/we-made-the-impossible-possible-in-the-tuenti-challenge-8-edition-619df6d56381",
+    "given_title": "",
+    "favorite": "0",
+    "status": "0",
+    "time_added": "1615744282",
+    "time_updated": "1615744282",
+    "time_read": "0",
+    "time_favorited": "0",
+    "sort_id": 0,
+    "resolved_title": "We made the impossible possible in the Tuenti Challenge 8 edition!",
+    "resolved_url": "https://medium.com/makingtuenti/we-made-the-impossible-possible-in-the-tuenti-challenge-8-edition-619df6d56381",
+    "excerpt": "Another year, another edition of the Tuenti Challenge!  This year’s 10 finalists came from different cities to our office in Madrid to spend a day of workshops, interviews and, of course, immersion in Tuenti’s culture to get to know the team, both in the office and outside of it.",
+    "is_article": "1",
+    "is_index": "0",
+    "has_video": "0",
+    "has_image": "1",
+    "word_count": "394",
+    "lang": "en",
+    "top_image_url": "https://cdn-images-1.medium.com/max/1200/1*WfwWkb7flRpymIcBiyZ1ww.jpeg",
+    "authors": {
+        "89448984": {
+            "item_id": "2201364997",
+            "author_id": "89448984",
+            "name": "Nuria Fernández",
+            "url": "https://medium.com/@nuriadefuria"
+        }
+    },
+    "image": {
+        "item_id": "2201364997",
+        "src": "https://cdn-images-1.medium.com/max/2000/1*WfwWkb7flRpymIcBiyZ1ww.jpeg",
+        "width": "0",
+        "height": "0"
+    },
+    "images": {
+        "1": {
+            "item_id": "2201364997",
+            "image_id": "1",
+            "src": "https://cdn-images-1.medium.com/max/2000/1*WfwWkb7flRpymIcBiyZ1ww.jpeg",
+            "width": "0",
+            "height": "0",
+            "credit": "",
+            "caption": "Tuenti Challenge 8 team with the finalists at the office"
+        },
+        "2": {
+            "item_id": "2201364997",
+            "image_id": "2",
+            "src": "https://cdn-images-1.medium.com/max/1600/1*TkFh97CrZqAIBMd77jqDYg.jpeg",
+            "width": "0",
+            "height": "0",
+            "credit": "",
+            "caption": ""
+        },
+        "3": {
+            "item_id": "2201364997",
+            "image_id": "3",
+            "src": "https://cdn-images-1.medium.com/max/1600/1*8NffJzyIf7oiTI2q3zKo3g.jpeg",
+            "width": "0",
+            "height": "0",
+            "credit": "",
+            "caption": ""
+        }
+    },
+    "domain_metadata": {
+        "name": "Medium",
+        "logo": "https://logo.clearbit.com/medium.com?size=800",
+        "greyscale_logo": "https://logo.clearbit.com/medium.com?size=800&greyscale=true"
+    },
+    "listen_duration_estimate": 153
+}

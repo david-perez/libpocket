@@ -1,0 +1,57 @@
+{
+    "item_id": "973981529",
+    "resolved_id": "973981529",
+    "given_url": "https://www.youtube.com/watch?v=inBKFMB-yPg",
+    "given_title": "",
+    "favorite": "0",
+    "status": "0",
+    "time_added": "1615742687",
+    "time_updated": "1615742687",
+    "time_read": "0",
+    "time_favorited": "0",
+    "sort_id": 1,
+    "resolved_title": "Ana Vidovic plays Asturias by Isaac Albéniz",
+    "resolved_url": "http://www.youtube.com/watch?v=inBKFMB-yPg",
+    "excerpt": "Ana Vidovic plays Asturias by Isaac Albéniz. Visit us: http://www.siccasguitars.com",
+    "is_article": "0",
+    "is_index": "0",
+    "has_video": "2",
+    "has_image": "1",
+    "word_count": "0",
+    "lang": "en",
+    "image": {
+        "item_id": "973981529",
+        "src": "http://img.youtube.com/vi/inBKFMB-yPg/maxresdefault.jpg",
+        "width": "1280",
+        "height": "720"
+    },
+    "images": {
+        "1": {
+            "item_id": "973981529",
+            "image_id": "1",
+            "src": "http://img.youtube.com/vi/inBKFMB-yPg/maxresdefault.jpg",
+            "width": "1280",
+            "height": "720",
+            "credit": "",
+            "caption": ""
+        }
+    },
+    "videos": {
+        "1": {
+            "item_id": "973981529",
+            "video_id": "1",
+            "src": "http://www.youtube.com/watch?v=inBKFMB-yPg",
+            "width": "0",
+            "height": "0",
+            "type": "1",
+            "vid": "inBKFMB-yPg",
+            "length": "435"
+        }
+    },
+    "domain_metadata": {
+        "name": "YouTube",
+        "logo": "https://logo.clearbit.com/youtube.com?size=800",
+        "greyscale_logo": "https://logo.clearbit.com/youtube.com?size=800&greyscale=true"
+    },
+    "listen_duration_estimate": 0
+}
