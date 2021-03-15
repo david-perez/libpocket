@@ -145,7 +145,7 @@ pub struct GetInput {
 }
 
 impl Client {
-    pub async fn mark_as_read<'a, T>(&self, ids: T)
+    pub async fn archive<'a, T>(&self, ids: T)
     where
         T: IntoIterator<Item = &'a str>,
     {
