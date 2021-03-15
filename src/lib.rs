@@ -36,6 +36,7 @@ enum Action {
     Delete,
     Favorite,
     Readd,
+    Unfavorite,
 }
 
 /// Any fallible operation by the client models its errors using one of this type's variants.
@@ -173,6 +174,15 @@ impl Client {
         self.modify(Action::Favorite, item_ids).await;
     }
 
+    pub async fn unfavorite<'a, T>(&self, items: T)
+    where
+        T: IntoIterator<Item = &'a Item>,
+    {
+        let item_ids = items.into_iter().map(|item| item.item_id.as_str());
+
+        self.modify(Action::Unfavorite, item_ids).await;
+    }
+
     pub async fn add_urls<'a, T>(&self, urls: T)
     where
         T: IntoIterator<Item = &'a str>,
@@ -270,6 +280,7 @@ impl Client {
             Action::Delete => "delete",
             Action::Favorite => "favorite",
             Action::Readd => "readd",
+            Action::Unfavorite => "unfavorite",
         };
         let item_key = match action {
             Action::Add => "url",
