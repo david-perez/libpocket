@@ -78,6 +78,8 @@ pub struct Item {
     #[serde_as(as = "DisplayFromStr")]
     pub time_favorited: u64,
 
+    /// This seems to determine the order in which items are sorted when presented to the user by
+    /// client applications.
     pub sort_id: u32,
 
     #[serde(deserialize_with = "deserialize_string_to_bool")]
