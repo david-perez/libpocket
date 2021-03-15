@@ -34,6 +34,7 @@ enum Action {
     Archive,
     Favorite,
     Add,
+    Delete,
 }
 
 /// Any fallible operation by the client models its errors using one of this type's variants.
@@ -165,6 +166,15 @@ impl Client {
         self.modify(Action::Add, urls).await;
     }
 
+    pub async fn delete<'a, T>(&self, items: T)
+    where
+        T: IntoIterator<Item = &'a Item>,
+    {
+        let item_ids = items.into_iter().map(|item| item.item_id.as_str());
+
+        self.modify(Action::Delete, item_ids).await;
+    }
+
     fn auth(&self) -> serde_json::Value {
         json!({
             "consumer_key": &self.consumer_key,
@@ -244,6 +254,7 @@ impl Client {
             Action::Favorite => "favorite",
             Action::Archive => "archive",
             Action::Add => "add",
+            Action::Delete => "delete",
         };
         let item_key = match action {
             Action::Add => "url",
