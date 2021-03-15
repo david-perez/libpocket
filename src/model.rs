@@ -9,7 +9,7 @@ pub type ItemId = String;
 /// The official API docs state that all members are optional. However, empirically it seems safe
 /// to assume that the ones that are not `Option`s are always present.
 #[serde_as]
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct Item {
     /// A unique identifier matching the saved item. This id must be used to perform any actions
     /// through the v3/modify endpoint.
@@ -107,7 +107,7 @@ pub struct Item {
 }
 
 /// An `Item` that should be deleted.
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct DeletedItem {
     pub item_id: ItemId,
     // Pocket also returns a "status" field which is set to 2, meaning "this item should be
@@ -117,7 +117,7 @@ pub struct DeletedItem {
 }
 
 #[serde(untagged)]
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub enum ItemOrDeletedItem {
     Item(Item),
     DeletedItem(DeletedItem),
@@ -134,7 +134,7 @@ where
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct DomainMetadata {
     pub name: Option<String>,
     pub logo: String,
@@ -144,7 +144,7 @@ pub struct DomainMetadata {
 /// The main image associated with an `Item`.
 /// Same as an `Image`, except the `image_id`, `credit`, and `caption` fields are not present.
 #[serde_as]
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct MainImage {
     /// The `Item`'s `item_id` this image is associated with.
     pub item_id: String,
@@ -163,7 +163,7 @@ pub struct MainImage {
 
 /// An image associated with an `Item`.
 #[serde_as]
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct Image {
     /// The `Item`'s `item_id` this image is associated with.
     pub item_id: String,
@@ -194,7 +194,7 @@ pub struct Image {
 }
 
 #[serde_as]
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct Video {
     /// The `Item`'s `item_id` this video is associated with.
     pub item_id: String,
@@ -228,7 +228,7 @@ pub struct Video {
     pub length: Option<u32>,
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct Author {
     /// The `Item`'s `item_id` this author is associated with.
     pub item_id: String,
@@ -246,7 +246,7 @@ pub struct Author {
     pub url: String,
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct Tag {
     /// The `Item`'s `item_id` this tag is applied to.
     pub item_id: String,
