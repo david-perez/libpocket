@@ -30,15 +30,6 @@ enum ResponseState {
     NoMore,
 }
 
-enum Action {
-    Add,
-    Archive,
-    Delete,
-    Favorite,
-    Readd,
-    Unfavorite,
-}
-
 /// Any fallible operation by the client models its errors using one of this type's variants.
 #[derive(Error, Debug)]
 pub enum ClientError {
@@ -146,57 +137,94 @@ pub struct GetInput {
     offset: Option<u32>,
 }
 
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "lowercase", tag = "action")]
+// TODO Turns out that while the docs specify the timestamps have to be strings, sending  numbers
+// works fine.
+// TODO We can probably make it so that `url` and `item_id` can be references.
+// `Add` and `Readd` are the only ones for which the API returns an object akin to an `Item`.
+// The rest of the actions return `true`.
+pub enum Action {
+    Add { url: String, time: u64 }, // TODO More options
+    Archive { item_id: ItemId, time: u64 },
+    Readd { item_id: ItemId, time: u64 },
+    Favorite { item_id: ItemId, time: u64 },
+    Unfavorite { item_id: ItemId, time: u64 },
+    Delete { item_id: ItemId, time: u64 },
+    // TODO the rest.
+}
+
 impl Client {
     pub async fn archive<'a, T>(&self, items: T)
     where
         T: IntoIterator<Item = &'a Item>,
     {
-        let item_ids = items.into_iter().map(|item| item.item_id.as_str());
+        let actions = items.into_iter().map(|item| Action::Archive {
+            item_id: item.item_id.clone(),
+            time: chrono::Utc::now().timestamp() as u64,
+        });
 
-        self.modify(Action::Archive, item_ids).await;
+        self.modify(actions).await;
     }
 
     pub async fn readd<'a, T>(&self, items: T)
     where
         T: IntoIterator<Item = &'a Item>,
     {
-        let item_ids = items.into_iter().map(|item| item.item_id.as_str());
+        let actions = items.into_iter().map(|item| Action::Readd {
+            item_id: item.item_id.clone(),
+            time: chrono::Utc::now().timestamp() as u64,
+        });
 
-        self.modify(Action::Readd, item_ids).await;
+        self.modify(actions).await;
     }
 
     pub async fn favorite<'a, T>(&self, items: T)
     where
         T: IntoIterator<Item = &'a Item>,
     {
-        let item_ids = items.into_iter().map(|item| item.item_id.as_str());
+        let actions = items.into_iter().map(|item| Action::Favorite {
+            item_id: item.item_id.clone(),
+            time: chrono::Utc::now().timestamp() as u64,
+        });
 
-        self.modify(Action::Favorite, item_ids).await;
+        self.modify(actions).await;
     }
 
     pub async fn unfavorite<'a, T>(&self, items: T)
     where
         T: IntoIterator<Item = &'a Item>,
     {
-        let item_ids = items.into_iter().map(|item| item.item_id.as_str());
+        let actions = items.into_iter().map(|item| Action::Unfavorite {
+            item_id: item.item_id.clone(),
+            time: chrono::Utc::now().timestamp() as u64,
+        });
 
-        self.modify(Action::Unfavorite, item_ids).await;
+        self.modify(actions).await;
     }
 
     pub async fn add_urls<'a, T>(&self, urls: T)
     where
         T: IntoIterator<Item = &'a str>,
     {
-        self.modify(Action::Add, urls).await;
+        let actions = urls.into_iter().map(|url| Action::Add {
+            url: String::from(url),
+            time: chrono::Utc::now().timestamp() as u64,
+        });
+
+        self.modify(actions).await;
     }
 
     pub async fn delete<'a, T>(&self, items: T)
     where
         T: IntoIterator<Item = &'a Item>,
     {
-        let item_ids = items.into_iter().map(|item| item.item_id.as_str());
+        let actions = items.into_iter().map(|item| Action::Delete {
+            item_id: item.item_id.clone(),
+            time: chrono::Utc::now().timestamp() as u64,
+        });
 
-        self.modify(Action::Delete, item_ids).await;
+        self.modify(actions).await;
     }
 
     fn auth(&self) -> serde_json::Value {
@@ -211,7 +239,6 @@ impl Client {
 
         let mut payload =
             serde_json::to_value(get_input).expect("Unable to convert input to JSON value");
-
         payload.merge(self.auth());
 
         let response = self.request(method, payload.to_string()).await;
@@ -249,7 +276,6 @@ impl Client {
 
             let mut payload =
                 serde_json::to_value(get_input).expect("Unable to convert input to JSON value");
-
             payload.merge(self.auth());
 
             let response = self.request(method, payload.to_string()).await;
@@ -269,44 +295,22 @@ impl Client {
         Ok(reading_list)
     }
 
-    async fn modify<'a, T>(&self, action: Action, ids: T)
+    pub async fn modify<T>(&self, actions: T)
     where
-        T: IntoIterator<Item = &'a str>,
+        T: IntoIterator<Item = Action>,
     {
         let method = url("/send");
-        let action_verb = match action {
-            Action::Add => "add",
-            Action::Archive => "archive",
-            Action::Delete => "delete",
-            Action::Favorite => "favorite",
-            Action::Readd => "readd",
-            Action::Unfavorite => "unfavorite",
-        };
-        let item_key = match action {
-            Action::Add => "url",
-            _ => "item_id",
-        };
-        let time = chrono::Utc::now().timestamp();
-        let actions: Vec<String> = ids
-            .into_iter()
-            .map(|id| {
-                format!(
-                    r##"{{ "action": "{}", "{}": "{}", "time": "{}" }}"##,
-                    action_verb, item_key, id, time
-                )
-            })
-            .collect();
-        let payload = format!(
-            r##"{{ "consumer_key":"{}",
-                               "access_token":"{}",
-                               "actions": [{}]
-                               }}"##,
-            &self.consumer_key,
-            &self.authorization_code,
-            actions.join(", ")
-        );
 
-        self.request(method, payload).await;
+        let mut payload = json!({ "actions": actions.into_iter().collect::<Vec<Action>>() });
+        payload.merge(self.auth());
+
+        let _response = self.request(method, payload.to_string()).await;
+
+        // TODO Parse response.
+        // response = "{\"action_results\":[false],\"action_errors\":[null],\"status\":1}"
+        // {"action_results":[true],"status":1}
+
+        // dbg!(&response);
     }
 
     async fn request(&self, uri: Uri, payload: String) -> String {
