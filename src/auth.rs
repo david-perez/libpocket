@@ -1,5 +1,4 @@
-use hyper::{body, header, Body, Method, Request, Uri};
-use hyper_rustls::HttpsConnector;
+use reqwest::Url;
 use thiserror::Error;
 
 const ENDPOINT: &str = "https://getpocket.com/v3";
@@ -9,20 +8,37 @@ pub type RequestToken = String;
 pub type AuthorizationCode = String;
 
 pub struct Client {
-    pub consumer_key: String,
-    pub authorization_code: String,
+    /// Internal member to perform requests to the Pocket API.
+    pub(crate) http: reqwest::Client,
+
+    /// Your application's consumer key.
+    pub(crate) consumer_key: String,
+
+    /// The specific user's access token code.
+    pub(crate) authorization_code: String,
 }
 
-pub fn https_client() -> hyper::Client<HttpsConnector<hyper::client::HttpConnector>> {
-    let https = HttpsConnector::with_native_roots();
-    hyper::Client::builder().build::<_, hyper::Body>(https)
+impl Client {
+    /// Initialize a Pocket API client.
+    ///
+    /// Parameters:
+    /// - consumer_key - your application's consumer key.
+    /// - authorization_code - the specific user's access token code
+    ///
+    /// [Reference](https://getpocket.com/developer/docs/authentication)
+    pub fn new(consumer_key: String, authorization_code: String) -> Self {
+        Client {
+            http: reqwest::Client::new(),
+            consumer_key,
+            authorization_code,
+        }
+    }
 }
 
 // TODO Move to utils?
-pub fn url(method: &str) -> Uri {
+pub fn url(method: &str) -> Url {
     let url = format!("{}{}", ENDPOINT, method);
-    url.parse()
-        .unwrap_or_else(|_| panic!("Could not parse URL: {}", url))
+    Url::parse(&url).unwrap_or_else(|_| panic!("Could not parse URL: {}", url))
 }
 
 #[derive(Error, Debug)]
@@ -44,44 +60,36 @@ pub fn authorization_url(token: &RequestToken) -> String {
     )
 }
 
-async fn request(
-    client: &hyper::Client<HttpsConnector<hyper::client::HttpConnector>>,
-    uri: &Uri,
-    body: String,
+async fn request<T: serde::Serialize + ?Sized>(
+    client: &reqwest::Client,
+    url: Url,
+    params: &T,
 ) -> Result<String, AuthError> {
-    let request = Request::builder()
-        .method(Method::POST)
-        .uri(uri)
-        .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
-        .header(header::CONNECTION, "close")
-        .body(Body::from(body))
-        .map_err(|_| AuthError::OAuthError(String::from("could not construct request.")))?;
-
-    let response = client
-        .request(request)
+    let res = client
+        .post(url)
+        .form(&params)
+        .send()
         .await
-        .map_err(|_| AuthError::OAuthError(String::from("could not send request.")))?;
+        .map_err(|_| AuthError::OAuthError(String::from("Could not send request.")))?;
 
-    let body_bytes = body::to_bytes(response.into_body())
+    let body = res
+        .text()
         .await
-        .map_err(|_| AuthError::OAuthError(String::from("unable to read response body.")))?;
+        .map_err(|_| AuthError::OAuthError(String::from("Unable to read response body.")))?;
 
-    let body = String::from_utf8(body_bytes.to_vec())
-        .map_err(|_| AuthError::OAuthError(String::from("response was not valid UTF-8.")));
-
-    body
+    Ok(body)
 }
 
 pub async fn get_request_token(consumer_key: &str) -> Result<RequestToken, AuthError> {
-    let client = https_client();
+    let client = reqwest::Client::new(); // TODO
 
     let body = request(
         &client,
-        &url("/oauth/request"),
-        format!(
-            "consumer_key={}&redirect_uri={}",
-            consumer_key, REDIRECT_URL
-        ),
+        url("/oauth/request"),
+        &[
+            ("consumer_key", consumer_key),
+            ("redirect_uri", REDIRECT_URL),
+        ],
     )
     .await?;
 
@@ -99,25 +107,25 @@ pub async fn get_authorization_code(
     consumer_key: &str,
     token: String,
 ) -> Result<AuthorizationCode, AuthError> {
-    let client = https_client();
+    let client = reqwest::Client::new(); // TODO
 
     let body = request(
         &client,
-        &url("/oauth/authorize"),
-        format!("consumer_key={}&code={}", consumer_key, token),
+        url("/oauth/authorize"),
+        &[("consumer_key", consumer_key), ("code", &token)],
     )
     .await?;
 
     let first_value = body.split('=').nth(1).ok_or_else(|| {
         AuthError::RequestAuthorizationCode(format!(
-            r#"unable to parse response. Response was "{}""#,
+            r#"Unable to parse response. Response was "{}""#,
             &body
         ))
     })?;
 
     let code = first_value.split('&').next().ok_or_else(|| {
         AuthError::RequestAuthorizationCode(format!(
-            r#"unable to parse response. Response was "{}""#,
+            r#"Unable to parse response. Response was "{}""#,
             &body
         ))
     })?;

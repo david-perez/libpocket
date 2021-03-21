@@ -194,10 +194,7 @@ fn client() -> Client {
     let authorization_code =
         std::env::var("POCKET_AUTHORIZATION_CODE").expect("POCKET_AUTHORIZATION_CODE not set");
 
-    Client {
-        authorization_code,
-        consumer_key,
-    }
+    Client::new(consumer_key, authorization_code)
 }
 
 #[derive(Error, Debug)]

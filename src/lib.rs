@@ -1,6 +1,6 @@
 use derive_builder::Builder;
-use hyper::{body, header, Body, Method, Request, Uri};
 use json_value_merge::Merge;
+use reqwest::Url;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::json;
 use thiserror::Error;
@@ -155,6 +155,7 @@ pub enum Action {
 }
 
 impl Client {
+    // TODO Docs
     pub async fn archive<'a, T>(&self, items: T)
     where
         T: IntoIterator<Item = &'a Item>,
@@ -237,17 +238,16 @@ impl Client {
     pub async fn get(&self, get_input: &GetInput) -> ClientResponse<ReadingList> {
         let method = url("/get");
 
-        let mut payload =
+        let payload =
             serde_json::to_value(get_input).expect("Unable to convert input to JSON value");
-        payload.merge(self.auth());
 
-        let response = self.request(method, payload.to_string()).await;
+        let res = self.post_json(method, payload).await;
 
-        // dbg!(&response);
+        // dbg!(&res);
 
         let mut reading_list: ReadingList = Default::default();
 
-        match parse_get_response(&response) {
+        match parse_get_response(&res) {
             Ok(ResponseState::NoMore) => (),
             Ok(ResponseState::Parsed(parsed_response)) => {
                 reading_list.extend(parsed_response.list.into_iter());
@@ -274,15 +274,14 @@ impl Client {
                 .build()
                 .unwrap();
 
-            let mut payload =
+            let payload =
                 serde_json::to_value(get_input).expect("Unable to convert input to JSON value");
-            payload.merge(self.auth());
 
-            let response = self.request(method, payload.to_string()).await;
+            let res = self.post_json(method, payload).await;
 
-            // dbg!(&response);
+            // dbg!(&res);
 
-            match parse_get_response(&response) {
+            match parse_get_response(&res) {
                 Ok(ResponseState::NoMore) => break,
                 Ok(ResponseState::Parsed(parsed_response)) => {
                     offset += 1;
@@ -300,11 +299,8 @@ impl Client {
         T: IntoIterator<Item = Action>,
     {
         let method = url("/send");
-
-        let mut payload = json!({ "actions": actions.into_iter().collect::<Vec<Action>>() });
-        payload.merge(self.auth());
-
-        let _response = self.request(method, payload.to_string()).await;
+        let payload = json!({ "actions": actions.into_iter().collect::<Vec<Action>>() });
+        let _response = self.post_json(method, payload).await;
 
         // TODO Parse response.
         // response = "{\"action_results\":[false],\"action_errors\":[null],\"status\":1}"
@@ -313,31 +309,26 @@ impl Client {
         // dbg!(&response);
     }
 
-    async fn request(&self, uri: Uri, payload: String) -> String {
-        let client = auth::https_client();
+    async fn post_json(&self, url: Url, mut json: serde_json::Value) -> String {
+        json.merge(self.auth());
 
-        let req = Request::builder()
-            .method(Method::POST)
-            .uri(uri)
-            .header(header::CONTENT_TYPE, "application/json")
-            .header(header::CONNECTION, "close")
-            .body(Body::from(payload.clone()))
-            .unwrap();
+        let req = self.http.post(url).json(&json);
 
-        let res = client
-            .request(req)
+        let res = req
+            .send()
             .await
-            .unwrap_or_else(|_| panic!("Could not make request with payload: {}", &payload));
+            .unwrap_or_else(|_| panic!("Could not send request")); // TODO
 
-        let body_bytes = body::to_bytes(res.into_body())
+        // dbg!(&res);
+
+        // TODO Status code.
+
+        let body = res
+            .text()
             .await
-            .expect("Could not read the HTTP request's body");
+            .unwrap_or_else(|_| panic!(String::from("Unable to read response body."))); // TODO
 
-        let ret = String::from_utf8(body_bytes.to_vec()).expect("Response was not valid UTF-8");
-
-        // dbg!(&ret);
-
-        ret
+        body
     }
 }
 
