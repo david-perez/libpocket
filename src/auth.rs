@@ -4,36 +4,8 @@ use thiserror::Error;
 const ENDPOINT: &str = "https://getpocket.com/v3";
 const REDIRECT_URL: &str = "https://getpocket.com";
 
-pub type RequestToken = String;
-pub type AuthorizationCode = String;
-
-pub struct Client {
-    /// Internal member to perform requests to the Pocket API.
-    pub(crate) http: reqwest::Client,
-
-    /// Your application's consumer key.
-    pub(crate) consumer_key: String,
-
-    /// The specific user's access token code.
-    pub(crate) authorization_code: String,
-}
-
-impl Client {
-    /// Initialize a Pocket API client.
-    ///
-    /// Parameters:
-    /// - consumer_key - your application's consumer key.
-    /// - authorization_code - the specific user's access token code
-    ///
-    /// [Reference](https://getpocket.com/developer/docs/authentication)
-    pub fn new(consumer_key: String, authorization_code: String) -> Self {
-        Client {
-            http: reqwest::Client::new(),
-            consumer_key,
-            authorization_code,
-        }
-    }
-}
+type RequestToken = String;
+type AuthorizationCode = String;
 
 // TODO Move to utils?
 pub fn url(method: &str) -> Url {

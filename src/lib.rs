@@ -154,7 +154,33 @@ pub enum Action {
     // TODO the rest.
 }
 
+pub struct Client {
+    /// Internal member to perform requests to the Pocket API.
+    pub(crate) http: reqwest::Client,
+
+    /// Your application's consumer key.
+    pub(crate) consumer_key: String,
+
+    /// The specific user's access token code.
+    pub(crate) authorization_code: String,
+}
+
 impl Client {
+    /// Initialize a Pocket API client.
+    ///
+    /// Parameters:
+    /// - consumer_key - your application's consumer key.
+    /// - authorization_code - the specific user's access token code
+    ///
+    /// [Reference](https://getpocket.com/developer/docs/authentication)
+    pub fn new(consumer_key: String, authorization_code: String) -> Self {
+        Client {
+            http: reqwest::Client::new(),
+            consumer_key,
+            authorization_code,
+        }
+    }
+
     // TODO Docs
     pub async fn archive<'a, T>(&self, items: T)
     where
