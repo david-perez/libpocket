@@ -34,7 +34,7 @@ enum ResponseState {
 #[derive(Error, Debug)]
 pub enum ClientError {
     #[error("error parsing JSON response from Pocket API; response: {0}")]
-    ParseJSON(#[from] serde_json::Error),
+    ParseJson(#[from] serde_json::Error),
 
     #[error("error performing request to Pocket API: {0}")]
     HttpError(#[from] reqwest::Error),
@@ -281,7 +281,7 @@ impl Client {
             Ok(ResponseState::Parsed(parsed_response)) => {
                 reading_list.extend(parsed_response.list.into_iter());
             }
-            Err(e) => return Err(ClientError::ParseJSON(e)),
+            Err(e) => return Err(ClientError::ParseJson(e)),
         }
 
         Ok(reading_list)
@@ -316,7 +316,7 @@ impl Client {
                     offset += 1;
                     reading_list.extend(parsed_response.list.into_iter());
                 }
-                Err(e) => return Err(ClientError::ParseJSON(e)),
+                Err(e) => return Err(ClientError::ParseJson(e)),
             }
         }
 
