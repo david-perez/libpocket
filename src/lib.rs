@@ -35,6 +35,9 @@ enum ResponseState {
 pub enum ClientError {
     #[error("error parsing JSON response from Pocket API; response: {0}")]
     ParseJSON(#[from] serde_json::Error),
+
+    #[error("error performing request to Pocket API: {0}")]
+    HttpError(#[from] reqwest::Error),
 }
 
 type ClientResponse<T> = std::result::Result<T, ClientError>;
@@ -267,13 +270,13 @@ impl Client {
         let payload =
             serde_json::to_value(get_input).expect("Unable to convert input to JSON value");
 
-        let res = self.post_json(method, payload).await;
+        let response_body = self.post_json(method, payload).await?;
 
-        // dbg!(&res);
+        // dbg!(&response_body);
 
         let mut reading_list: ReadingList = Default::default();
 
-        match parse_get_response(&res) {
+        match parse_get_response_body(&response_body) {
             Ok(ResponseState::NoMore) => (),
             Ok(ResponseState::Parsed(parsed_response)) => {
                 reading_list.extend(parsed_response.list.into_iter());
@@ -303,11 +306,11 @@ impl Client {
             let payload =
                 serde_json::to_value(get_input).expect("Unable to convert input to JSON value");
 
-            let res = self.post_json(method, payload).await;
+            let response_body = self.post_json(method, payload).await?;
 
-            // dbg!(&res);
+            // dbg!(&response_body);
 
-            match parse_get_response(&res) {
+            match parse_get_response_body(&response_body) {
                 Ok(ResponseState::NoMore) => break,
                 Ok(ResponseState::Parsed(parsed_response)) => {
                     offset += 1;
@@ -326,7 +329,7 @@ impl Client {
     {
         let method = url("/send");
         let payload = json!({ "actions": actions.into_iter().collect::<Vec<Action>>() });
-        let _response = self.post_json(method, payload).await;
+        let _response_body = self.post_json(method, payload).await;
 
         // TODO Parse response.
         // response = "{\"action_results\":[false],\"action_errors\":[null],\"status\":1}"
@@ -335,30 +338,22 @@ impl Client {
         // dbg!(&response);
     }
 
-    async fn post_json(&self, url: Url, mut json: serde_json::Value) -> String {
+    async fn post_json(&self, url: Url, mut json: serde_json::Value) -> ClientResponse<String> {
         json.merge(self.auth());
+        let res = self.http.post(url).json(&json).send().await?;
 
-        let req = self.http.post(url).json(&json);
-
-        let res = req
-            .send()
-            .await
-            .unwrap_or_else(|_| panic!("Could not send request")); // TODO
+        // Bubble up non 2XX responses as errors.
+        let res = res.error_for_status()?;
 
         // dbg!(&res);
 
-        // TODO Status code.
+        let body = res.text().await?;
 
-        let body = res
-            .text()
-            .await
-            .unwrap_or_else(|_| panic!(String::from("Unable to read response body."))); // TODO
-
-        body
+        Ok(body)
     }
 }
 
-fn parse_get_response(response: &str) -> Result<ResponseState, serde_json::Error> {
+fn parse_get_response_body(response: &str) -> Result<ResponseState, serde_json::Error> {
     match serde_json::from_str::<ReadingListResponse>(response) {
         Ok(r) => Ok(ResponseState::Parsed(r)),
         Err(e) => match serde_json::from_str::<EmptyReadingListResponse>(response) {
@@ -384,7 +379,7 @@ mod tests {
     #[test]
     fn deserialize_empty_list_object() {
         let response = r#"{ "list": {}}"#;
-        match parse_get_response(&response) {
+        match parse_get_response_body(&response) {
             Ok(ResponseState::Parsed(_)) => (),
             _ => panic!("This should have been parsed"),
         }
@@ -393,7 +388,7 @@ mod tests {
     #[test]
     fn deserialize_empty_list_array() {
         let response = r#"{ "list": []}"#;
-        match parse_get_response(&response) {
+        match parse_get_response_body(&response) {
             Ok(ResponseState::NoMore) => (),
             _ => panic!("This should signal an empty list"),
         }
@@ -403,6 +398,6 @@ mod tests {
     #[should_panic]
     fn deserialize_unparseable_response() {
         let response = r#"{ "list": "#;
-        parse_get_response(&response).unwrap();
+        parse_get_response_body(&response).unwrap();
     }
 }
