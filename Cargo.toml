@@ -1,6 +1,6 @@
 [package]
-authors = ["Bruno Tavares <connect+github@bltavares.com>"]
-name = "pickpocket"
+authors = ["David Pérez <d@vidp.dev>"]
+name = "libpocket"
 version = "0.1.0"
 edition = "2018"
 

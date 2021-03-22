@@ -1,4 +1,4 @@
-use pickpocket::{Client, GetInputBuilder, ItemOrDeletedItem, State};
+use libpocket::{Client, GetInputBuilder, ItemOrDeletedItem, State};
 
 fn client() -> Client {
     let consumer_key = std::env::var("POCKET_CONSUMER_KEY").expect("POCKET_CONSUMER_KEY not set");

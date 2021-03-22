@@ -447,6 +447,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1482821306169ec4d07f6aca392a4681f66c75c9918aa49641a2595db64053cb"
 
 [[package]]
+name = "libpocket"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "chrono",
+ "derive_builder",
+ "env_logger",
+ "json_value_merge",
+ "log",
+ "reqwest",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "serde_with",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "log"
 version = "0.4.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -596,25 +615,6 @@ name = "percent-encoding"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
-
-[[package]]
-name = "pickpocket"
-version = "0.1.0"
-dependencies = [
- "base64",
- "chrono",
- "derive_builder",
- "env_logger",
- "json_value_merge",
- "log",
- "reqwest",
- "serde",
- "serde_derive",
- "serde_json",
- "serde_with",
- "thiserror",
- "tokio",
-]
 
 [[package]]
 name = "pin-project"

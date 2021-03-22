@@ -10,7 +10,7 @@ use serde::de::DeserializeOwned;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
-use pickpocket::{
+use libpocket::{
     ActionError, Client, FavoriteStatus, GetInputBuilder, Item, ItemOrDeletedItem, ModifiedItem,
     ModifyResponse, ReadingList, State, Status,
 };

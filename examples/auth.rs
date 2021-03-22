@@ -9,7 +9,7 @@
 //!
 //! [the documentation on authentication]: https://getpocket.com/developer/docs/authentication
 
-use pickpocket::{authorization_url, get_authorization_code, get_request_token, AuthError, Client};
+use libpocket::{authorization_url, get_authorization_code, get_request_token, AuthError, Client};
 use std::io::Write;
 
 fn read_line() -> String {
