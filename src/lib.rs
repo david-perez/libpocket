@@ -13,18 +13,19 @@ pub use model::*;
 
 const DEFAULT_COUNT: u32 = 5000;
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct ReadingListResponse {
     list: ReadingList,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct EmptyReadingListResponse {
     // Apparently, Pocket changes the "list" value from an object to an empty JSON array when the
     // response contains no items.
     list: Vec<Item>,
 }
 
+#[derive(Debug)]
 enum ResponseState {
     Parsed(ReadingListResponse),
     NoMore,
@@ -53,7 +54,7 @@ enum ModifiedItemOrBool {
 }
 
 /// Any fallible operation by the client models its errors using one of this type's variants.
-#[derive(Error, Debug)]
+#[derive(Debug, Error)]
 pub enum ClientError {
     #[error("error parsing JSON response from Pocket API; response: {0}")]
     ParseJson(#[from] serde_json::Error),
@@ -67,7 +68,7 @@ pub type ModifyResponse = Vec<Result<Option<ModifiedItem>, ActionError>>;
 pub type ClientResult<T> = Result<T, ClientError>;
 pub type ModifyResult = ClientResult<ModifyResponse>;
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum State {
     /// Only return unread items (default).
@@ -84,7 +85,7 @@ impl Default for State {
     }
 }
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Debug, Serialize, Clone)]
 pub enum TagFilter {
     /// Only return items tagged with a tag name.
     TagName(String),
@@ -93,7 +94,7 @@ pub enum TagFilter {
     Untagged,
 }
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum ContentType {
     /// Only return articles.
@@ -104,7 +105,7 @@ pub enum ContentType {
     Image,
 }
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum Sort {
     /// Return items in order of newest to oldest.
@@ -117,7 +118,7 @@ pub enum Sort {
     Site,
 }
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum DetailType {
     /// Return basic information about each item, including title, URL, status, and more.
@@ -128,7 +129,7 @@ pub enum DetailType {
 
 #[serde_with::skip_serializing_none]
 #[builder(default)]
-#[derive(Serialize, Builder, Default)]
+#[derive(Debug, Serialize, Builder, Default)]
 pub struct GetInput {
     /// Filter by unread or archived items.
     state: Option<State>,
@@ -165,7 +166,7 @@ pub struct GetInput {
     offset: Option<u32>,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "lowercase", tag = "action")]
 // TODO Turns out that while the docs specify the timestamps have to be strings, sending  numbers
 // works fine.
@@ -182,6 +183,7 @@ pub enum Action {
     // TODO the rest.
 }
 
+#[derive(Debug)]
 pub struct Client {
     /// Internal member to perform requests to the Pocket API.
     http: reqwest::Client,

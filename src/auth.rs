@@ -13,7 +13,7 @@ pub fn url(method: &str) -> Url {
     Url::parse(&url).unwrap_or_else(|_| panic!("Could not parse URL: {}", url))
 }
 
-#[derive(Error, Debug)]
+#[derive(Debug, Error)]
 pub enum AuthError {
     #[error("Unexpected OAuth error: `{0}`")]
     OAuthError(#[from] reqwest::Error),

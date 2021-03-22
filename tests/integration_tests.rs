@@ -244,7 +244,7 @@ fn client() -> Client {
     Client::new(consumer_key, authorization_code)
 }
 
-#[derive(Error, Debug)]
+#[derive(Debug, Error)]
 enum TestHelperError {
     #[error("IoError: {0}")]
     IoError(#[from] std::io::Error),
