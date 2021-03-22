@@ -184,13 +184,13 @@ pub enum Action {
 
 pub struct Client {
     /// Internal member to perform requests to the Pocket API.
-    pub(crate) http: reqwest::Client,
+    http: reqwest::Client,
 
     /// Your application's consumer key.
-    pub(crate) consumer_key: String,
+    consumer_key: String,
 
     /// The specific user's access token code.
-    pub(crate) authorization_code: String,
+    authorization_code: String,
 }
 
 impl Client {
