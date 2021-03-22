@@ -1,5 +1,6 @@
 use derive_builder::Builder;
 use json_value_merge::Merge;
+use log::{debug, info};
 use reqwest::Url;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::json;
@@ -204,6 +205,11 @@ impl Client {
     ///
     /// [Reference](https://getpocket.com/developer/docs/authentication)
     pub fn new(consumer_key: String, authorization_code: String) -> Self {
+        info!("Client::new()");
+        debug!(
+            "consumer_key: {}, authorization_code: {}",
+            &consumer_key, &authorization_code
+        );
         Client {
             http: reqwest::Client::new(),
             consumer_key,
@@ -216,6 +222,7 @@ impl Client {
     where
         T: IntoIterator<Item = &'a Item>,
     {
+        info!("Client::archive()");
         let actions = items.into_iter().map(|item| Action::Archive {
             item_id: item.item_id.clone(),
             time: chrono::Utc::now().timestamp() as u64,
@@ -228,6 +235,7 @@ impl Client {
     where
         T: IntoIterator<Item = &'a Item>,
     {
+        info!("Client::readd()");
         let actions = items.into_iter().map(|item| Action::Readd {
             item_id: item.item_id.clone(),
             time: chrono::Utc::now().timestamp() as u64,
@@ -240,6 +248,7 @@ impl Client {
     where
         T: IntoIterator<Item = &'a Item>,
     {
+        info!("Client::favorite()");
         let actions = items.into_iter().map(|item| Action::Favorite {
             item_id: item.item_id.clone(),
             time: chrono::Utc::now().timestamp() as u64,
@@ -252,6 +261,7 @@ impl Client {
     where
         T: IntoIterator<Item = &'a Item>,
     {
+        info!("Client::unfavorite()");
         let actions = items.into_iter().map(|item| Action::Unfavorite {
             item_id: item.item_id.clone(),
             time: chrono::Utc::now().timestamp() as u64,
@@ -264,6 +274,7 @@ impl Client {
     where
         T: IntoIterator<Item = &'a str>,
     {
+        info!("Client::add_urls()");
         let actions = urls.into_iter().map(|url| Action::Add {
             url: String::from(url),
             time: chrono::Utc::now().timestamp() as u64,
@@ -276,6 +287,7 @@ impl Client {
     where
         T: IntoIterator<Item = &'a Item>,
     {
+        info!("Client::delete()");
         let actions = items.into_iter().map(|item| Action::Delete {
             item_id: item.item_id.clone(),
             time: chrono::Utc::now().timestamp() as u64,
@@ -292,14 +304,14 @@ impl Client {
     }
 
     pub async fn get(&self, get_input: &GetInput) -> ClientResult<ReadingList> {
+        info!("Client::get()");
+        debug!("get_input: {:#?}", &get_input);
         let method = url("/get");
 
         let payload =
             serde_json::to_value(get_input).expect("Unable to convert input to JSON value");
 
         let response_body = self.post_json(method, payload).await?;
-
-        // dbg!(&response_body);
 
         let mut reading_list: ReadingList = Default::default();
 
@@ -315,6 +327,7 @@ impl Client {
     }
 
     pub async fn list_all(&self) -> ClientResult<ReadingList> {
+        info!("Client::list_all()");
         let mut reading_list: ReadingList = Default::default();
 
         let mut offset = 0;
@@ -329,13 +342,12 @@ impl Client {
                 .offset(Some(offset * DEFAULT_COUNT))
                 .build()
                 .unwrap();
+            debug!("get_input: {:#?}", &get_input);
 
             let payload =
                 serde_json::to_value(get_input).expect("Unable to convert input to JSON value");
 
             let response_body = self.post_json(method, payload).await?;
-
-            // dbg!(&response_body);
 
             match parse_get_response_body(&response_body) {
                 Ok(ResponseState::NoMore) => break,
@@ -354,16 +366,15 @@ impl Client {
     where
         T: IntoIterator<Item = Action>,
     {
+        info!("Client::modify()");
         let method = url("/send");
-        let payload = json!({ "actions": actions.into_iter().collect::<Vec<Action>>() });
+        let actions = actions.into_iter().collect::<Vec<Action>>();
+        debug!("actions: {:#?}", &actions);
+        let payload = json!({ "actions": actions });
         let response_body = self.post_json(method, payload).await?;
-
-        // dbg!(&response_body);
 
         let parsed =
             parse_send_response_body(&response_body).map_err(|e| ClientError::ParseJson(e))?;
-
-        // dbg!(&parsed);
 
         let ret = parsed
             .action_results
@@ -404,14 +415,16 @@ impl Client {
 
     async fn post_json(&self, url: Url, mut json: serde_json::Value) -> ClientResult<String> {
         json.merge(self.auth());
-        let res = self.http.post(url).json(&json).send().await?;
+        let req = self.http.post(url).json(&json);
+        debug!("Request: {:#?}", &req);
+        debug!("Request JSON body: {}", &json.to_string());
+        let res = req.send().await?;
 
         // Bubble up non 2XX responses as errors.
         let res = res.error_for_status()?;
-
-        // dbg!(&res);
-
+        debug!("{:?}", &res);
         let body = res.text().await?;
+        debug!("Response body: {:?}", &body);
 
         Ok(body)
     }
@@ -419,7 +432,10 @@ impl Client {
 
 fn parse_get_response_body(response: &str) -> Result<ResponseState, serde_json::Error> {
     match serde_json::from_str::<ReadingListResponse>(response) {
-        Ok(r) => Ok(ResponseState::Parsed(r)),
+        Ok(r) => {
+            debug!("Parsed response body: {:#?}", &r);
+            Ok(ResponseState::Parsed(r))
+        }
         Err(e) => match serde_json::from_str::<EmptyReadingListResponse>(response) {
             Ok(r) => {
                 if r.list.is_empty() {
@@ -438,6 +454,7 @@ fn parse_get_response_body(response: &str) -> Result<ResponseState, serde_json::
 
 fn parse_send_response_body(response: &str) -> Result<ModifyResponseInner, serde_json::Error> {
     let ret: ModifyResponseInner = serde_json::from_str(response)?;
+    debug!("Parsed response body: {:#?}", &ret);
     Ok(ret)
 }
 

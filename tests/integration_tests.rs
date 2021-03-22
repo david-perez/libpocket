@@ -15,8 +15,14 @@ use pickpocket::{
     ModifyResponse, ReadingList, State, Status,
 };
 
+fn init() {
+    let _ = env_logger::builder().is_test(true).try_init();
+}
+
 #[tokio::test]
 async fn list_all() {
+    init();
+
     let res = client().list_all().await.unwrap();
 
     assert!(!res.is_empty());
@@ -31,6 +37,8 @@ async fn list_all() {
 
 #[tokio::test]
 async fn add_and_delete() {
+    init();
+
     // In the future we may add the Git SHA (grabbing it from an env var or using e.g.
     // https://crates.io/crates/last-git-commit)
     let time_base_64 = base64::encode(Utc::now().to_string());
@@ -58,6 +66,8 @@ async fn add_and_delete() {
 
 #[tokio::test]
 async fn add_invalid_url() {
+    init();
+
     let res = client().add_urls(vec!["savemysoul"]).await.unwrap();
     assert_eq!(res.len(), 1);
     let action_error = res.get(0).unwrap().as_ref().unwrap_err();
@@ -73,6 +83,8 @@ async fn add_invalid_url() {
 
 #[tokio::test]
 async fn archive_and_readd() {
+    init();
+
     let url = "https://getpocket.com/developer/docs/v3/modify#action_archive";
     let client = client();
 
@@ -97,6 +109,8 @@ async fn archive_and_readd() {
 
 #[tokio::test]
 async fn favorite_and_unfavorite() {
+    init();
+
     let url = "https://en.wikipedia.org/wiki/Favorite_(disambiguation)";
     let client = client();
 

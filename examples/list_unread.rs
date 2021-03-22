@@ -10,6 +10,8 @@ fn client() -> Client {
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
+
     let reading_list = client()
         .get(
             &GetInputBuilder::default()
