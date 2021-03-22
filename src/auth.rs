@@ -16,7 +16,7 @@ pub fn url(method: &str) -> Url {
 #[derive(Error, Debug)]
 pub enum AuthError {
     #[error("Unexpected OAuth error: `{0}`")]
-    OAuthError(String),
+    OAuthError(#[from] reqwest::Error),
 
     #[error("Unexpected error while requesting OAuth token: `{0}`")]
     RequestTokenError(String),
@@ -37,18 +37,8 @@ async fn request<T: serde::Serialize + ?Sized>(
     url: Url,
     params: &T,
 ) -> Result<String, AuthError> {
-    let res = client
-        .post(url)
-        .form(&params)
-        .send()
-        .await
-        .map_err(|_| AuthError::OAuthError(String::from("Could not send request.")))?;
-
-    let body = res
-        .text()
-        .await
-        .map_err(|_| AuthError::OAuthError(String::from("Unable to read response body.")))?;
-
+    let res = client.post(url).form(&params).send().await?;
+    let body = res.text().await?;
     Ok(body)
 }
 
@@ -90,14 +80,14 @@ pub async fn get_authorization_code(
 
     let first_value = body.split('=').nth(1).ok_or_else(|| {
         AuthError::RequestAuthorizationCode(format!(
-            r#"Unable to parse response. Response was "{}""#,
+            r#"unable to parse response. Response was "{}""#,
             &body
         ))
     })?;
 
     let code = first_value.split('&').next().ok_or_else(|| {
         AuthError::RequestAuthorizationCode(format!(
-            r#"Unable to parse response. Response was "{}""#,
+            r#"unable to parse response. Response was "{}""#,
             &body
         ))
     })?;

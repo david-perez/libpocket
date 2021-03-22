@@ -247,18 +247,17 @@ fn client() -> Client {
 #[derive(Error, Debug)]
 enum TestHelperError {
     #[error("IoError: {0}")]
-    IoError(std::io::Error),
+    IoError(#[from] std::io::Error),
 
     #[error("DeserializeError: {0}")]
-    DeserializeError(serde_json::Error),
+    DeserializeError(#[from] serde_json::Error),
 }
 
 fn deserialize_resource<T: DeserializeOwned>(filename: &str) -> Result<T, TestHelperError> {
-    let path = resource(filename).map_err(|e| TestHelperError::IoError(e))?;
-    let file = std::fs::File::open(path).map_err(|e| TestHelperError::IoError(e))?;
+    let path = resource(filename)?;
+    let file = std::fs::File::open(path)?;
     let reader = std::io::BufReader::new(file);
-    let value: T =
-        serde_json::from_reader(reader).map_err(|e| TestHelperError::DeserializeError(e))?;
+    let value: T = serde_json::from_reader(reader)?;
     Ok(value)
 }
 
