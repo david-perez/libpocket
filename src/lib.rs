@@ -373,8 +373,7 @@ impl Client {
         let payload = json!({ "actions": actions });
         let response_body = self.post_json(method, payload).await?;
 
-        let parsed =
-            parse_send_response_body(&response_body).map_err(|e| ClientError::ParseJson(e))?;
+        let parsed = parse_send_response_body(&response_body)?;
 
         let ret = parsed
             .action_results
