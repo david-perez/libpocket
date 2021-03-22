@@ -56,7 +56,7 @@ enum ModifiedItemOrBool {
 
 /// Any fallible operation by the client models its errors using one of this type's variants.
 #[derive(Debug, Error)]
-pub enum ClientError {
+pub enum Error {
     #[error("error parsing JSON response from Pocket API; response: {0}")]
     ParseJson(#[from] serde_json::Error),
 
@@ -66,7 +66,7 @@ pub enum ClientError {
 
 pub type ModifyResponse = Vec<Result<Option<ModifiedItem>, ActionError>>;
 
-pub type ClientResult<T> = Result<T, ClientError>;
+pub type ClientResult<T> = Result<T, Error>;
 pub type ModifyResult = ClientResult<ModifyResponse>;
 
 #[derive(Debug, Serialize, Clone)]
@@ -320,7 +320,7 @@ impl Client {
             Ok(ResponseState::Parsed(parsed_response)) => {
                 reading_list.extend(parsed_response.list.into_iter());
             }
-            Err(e) => return Err(ClientError::ParseJson(e)),
+            Err(e) => return Err(Error::ParseJson(e)),
         }
 
         Ok(reading_list)
@@ -355,7 +355,7 @@ impl Client {
                     offset += 1;
                     reading_list.extend(parsed_response.list.into_iter());
                 }
-                Err(e) => return Err(ClientError::ParseJson(e)),
+                Err(e) => return Err(Error::ParseJson(e)),
             }
         }
 
