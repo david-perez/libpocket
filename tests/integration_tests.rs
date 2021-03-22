@@ -39,14 +39,16 @@ async fn list_all() {
 async fn add_and_delete() {
     init();
 
+    let client = client();
+
     // In the future we may add the Git SHA (grabbing it from an env var or using e.g.
     // https://crates.io/crates/last-git-commit)
     let time_base_64 = base64::encode(Utc::now().to_string());
     let url = format!("https://httpbin.org/base64/{}", time_base_64);
 
-    let res_add = client().add_urls(vec![url.as_str()]).await.unwrap();
+    let res_add = client.add_urls(vec![url.as_str()]).await.unwrap();
 
-    let res = client().list_all().await.unwrap();
+    let res = client.list_all().await.unwrap();
     assert_contains_given_url_once(&res, &url);
 
     let item = res.find_given_url(&url).unwrap();
@@ -58,9 +60,9 @@ async fn add_and_delete() {
     // that `time_updated` is not exactly equal to what we expect, but within a 2 second range.
     assert_within_2_seconds(item.time_updated, item.time_added);
 
-    let res = client().delete(vec![item]).await.unwrap();
+    let res = client.delete(vec![item]).await.unwrap();
     assert_one_not_modified_item(&res);
-    let res = client().list_all().await.unwrap();
+    let res = client.list_all().await.unwrap();
     assert_does_not_contain_given_url(&res, &url);
 }
 
@@ -85,8 +87,8 @@ async fn add_invalid_url() {
 async fn archive_and_readd() {
     init();
 
-    let url = "https://getpocket.com/developer/docs/v3/modify#action_archive";
     let client = client();
+    let url = "https://getpocket.com/developer/docs/v3/modify#action_archive";
 
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
     assert_unread(&item);
