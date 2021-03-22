@@ -11,7 +11,8 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 use pickpocket::{
-    Client, FavoriteStatus, GetInputBuilder, Item, ItemOrDeletedItem, ReadingList, State, Status,
+    ActionError, Client, FavoriteStatus, GetInputBuilder, Item, ItemOrDeletedItem, ModifiedItem,
+    ModifyResponse, ReadingList, State, Status,
 };
 
 #[tokio::test]
@@ -35,11 +36,13 @@ async fn add_and_delete() {
     let time_base_64 = base64::encode(Utc::now().to_string());
     let url = format!("https://httpbin.org/base64/{}", time_base_64);
 
-    client().add_urls(vec![url.as_str()]).await;
+    let res_add = client().add_urls(vec![url.as_str()]).await.unwrap();
+
     let res = client().list_all().await.unwrap();
     assert_contains_given_url_once(&res, &url);
 
     let item = res.find_given_url(&url).unwrap();
+    assert_one_modified_item(&res_add, &item);
     assert_within_2_seconds_of_now(item.time_added);
     // Pocket has a bug (?) whereby `time_updated` is sometimes set to 1 second after `time_X`,
     // where `X` is the action that has just been performed. It seems like their backend is not
@@ -47,9 +50,25 @@ async fn add_and_delete() {
     // that `time_updated` is not exactly equal to what we expect, but within a 2 second range.
     assert_within_2_seconds(item.time_updated, item.time_added);
 
-    client().delete(vec![item]).await;
+    let res = client().delete(vec![item]).await.unwrap();
+    assert_one_not_modified_item(&res);
     let res = client().list_all().await.unwrap();
     assert_does_not_contain_given_url(&res, &url);
+}
+
+#[tokio::test]
+async fn add_invalid_url() {
+    let res = client().add_urls(vec!["savemysoul"]).await.unwrap();
+    assert_eq!(res.len(), 1);
+    let action_error = res.get(0).unwrap().as_ref().unwrap_err();
+    assert_eq!(
+        action_error,
+        &ActionError {
+            code: 422,
+            message: String::from("Invalid/non-existent URL"),
+            error_type: String::from("Unprocessable Entity")
+        }
+    );
 }
 
 #[tokio::test]
@@ -60,13 +79,17 @@ async fn archive_and_readd() {
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
     assert_unread(&item);
 
-    client.archive(vec![&item]).await;
+    let res = client.archive(vec![&item]).await.unwrap();
+    assert_one_not_modified_item(&res);
+
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
     assert_eq!(item.status, Status::Read);
     assert_within_2_seconds_of_now(item.time_read);
     assert_within_2_seconds(item.time_updated, item.time_read);
 
-    client.readd(vec![&item]).await;
+    let res = client.readd(vec![&item]).await.unwrap();
+    assert_one_modified_item(&res, &item);
+
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
     assert_unread(&item);
     assert_within_2_seconds_of_now(item.time_updated);
@@ -80,15 +103,39 @@ async fn favorite_and_unfavorite() {
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
     assert_not_favorited(&item);
 
-    client.favorite(vec![&item]).await;
+    let res = client.favorite(vec![&item]).await.unwrap();
+    assert_one_not_modified_item(&res);
+
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
     assert_eq!(item.favorite, FavoriteStatus::Favorited);
     assert_within_2_seconds_of_now(item.time_favorited);
     assert_within_2_seconds(item.time_updated, item.time_favorited);
 
-    client.unfavorite(vec![&item]).await;
+    let res = client.unfavorite(vec![&item]).await.unwrap();
+    assert_one_not_modified_item(&res);
+
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
     assert_not_favorited(&item);
+}
+
+fn assert_one_modified_item(modify_response: &ModifyResponse, item: &Item) {
+    assert!(modify_response.len() == 1);
+    let modified_item = modify_response
+        .get(0)
+        .unwrap()
+        .as_ref()
+        .unwrap()
+        .as_ref()
+        .unwrap();
+    assert_modified_item(&item, &modified_item);
+}
+
+// Asserts that the response contains one entry, indicating that the item was modified
+// successfully, but the action results in the response did not contain a modified item.
+fn assert_one_not_modified_item(modify_response: &ModifyResponse) {
+    assert!(modify_response.len() == 1);
+    let modified_item_opt = modify_response.get(0).unwrap().as_ref().unwrap();
+    assert_eq!(modified_item_opt, &None);
 }
 
 fn assert_within_2_seconds(t1: u64, t2: u64) {
@@ -304,4 +351,30 @@ impl PartialEq for TestItem<'_> {
             && self.0.tags == other.0.tags
             && self.0.image == other.0.image
     }
+}
+
+// Asserts that we modified an item by comparing what the /send endpoint returns us,
+// `modified_item`, to the fields of the `Item` that we modified and from which it should be
+// modelled after.
+fn assert_modified_item(item: &Item, modified_item: &ModifiedItem) {
+    // In theory this should be enough to confirm that we indeed modified the item we wanted to,
+    // since `item_id` is a unique identifier.
+    assert_eq!(modified_item.item_id, item.item_id);
+
+    if modified_item.resolved_id != item.item_id {
+        // Pocket API did not process the item yet.
+        assert_eq!(&modified_item.resolved_id, "0");
+    }
+    if modified_item.resolved_url != item.resolved_url {
+        // Pocket API did not process the item yet.
+        assert_eq!(&modified_item.resolved_url, "");
+    }
+
+    // The rest of the fields are relatively unimportant.
+    assert_eq!(modified_item.excerpt, item.excerpt);
+    assert_eq!(modified_item.is_article, item.is_article);
+    assert_eq!(modified_item.has_image, item.has_image);
+    assert_eq!(modified_item.has_video, item.has_video);
+    assert_eq!(modified_item.word_count, item.word_count);
+    assert_eq!(modified_item.domain_metadata, item.domain_metadata);
 }

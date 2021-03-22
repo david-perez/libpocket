@@ -106,6 +106,76 @@ pub struct Item {
     pub image: Option<MainImage>,
 }
 
+/// A Pocket item returned by the /v3/send endpoint, returned when *successfully* adding or
+/// readding an item.
+///
+/// There are no official API docs stating what the endpoint returns. However, empirically it seems
+/// safe to assume that the members that are not `Option`s are always present.
+#[serde_as]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
+pub struct ModifiedItem {
+    /// A unique identifier matching the saved item. This id must be used to perform any actions
+    /// through the v3/modify endpoint.
+    pub item_id: ItemId,
+
+    /// A unique identifier similar to the item_id but is unique to the actual url of the saved
+    /// item. The resolved_id identifies unique urls. For example a direct link to a New York Times
+    /// article and a link that redirects (ex a shortened bit.ly url) to the same article will
+    /// share the same resolved_id. If this value is 0, it means that Pocket has not processed the
+    /// item. Normally this happens within seconds but is possible you may request the item before
+    /// it has been resolved.
+    pub resolved_id: String,
+
+    /// The actual url that was saved with the item. This url should be used if the user wants to
+    /// view the item.
+    /// Observe that it is an `Option`, unlike in `Item`.
+    // Readd https://getpocket.com/developer/docs/v3/modify#action_archive returns given_url: null.
+    pub given_url: Option<String>,
+
+    /// The final url of the item. For example if the item was a shortened bit.ly link, this will
+    /// be the actual article the url linked to.
+    pub resolved_url: String,
+
+    // The title that was saved along with the item.
+    // TODO I guess the API would return this if we set a title when adding the item.
+    // pub given_title: String,
+
+    // The title that Pocket found for the item when it was parsed.
+    // TODO I guess the API would return this if we set a title when adding the item.
+    // pub resolved_title: String,
+    /// The first few lines of the item (articles only).
+    pub excerpt: String,
+
+    /// Whether the item is an article or not.
+    #[serde(deserialize_with = "deserialize_string_to_bool")]
+    pub is_article: bool,
+
+    /// Whether the item has/is an image.
+    pub has_image: HasImage,
+
+    /// Whether the item has/is a video.
+    pub has_video: HasVideo,
+
+    /// How many words are in the article.
+    #[serde_as(as = "DisplayFromStr")]
+    pub word_count: u64,
+
+    /// Language code. This is sometimes set to an empty string.
+    /// Observe that it is an `Option`, unlike in `Item`.
+    // Add httpbin.org returns lang: null.
+    pub lang: Option<String>,
+    pub domain_metadata: Option<DomainMetadata>,
+    // TODO The API returns empty arrays so we can't parse them into these types.
+    // pub images: Option<BTreeMap<String, Image>>,
+    // pub videos: Option<BTreeMap<String, Video>>,
+    // pub authors: Option<BTreeMap<String, Author>>,
+
+    // TODO I guess the API would return this if we set tags when adding the item.
+    // pub tags: Option<BTreeMap<String, Tag>>,
+
+    // TODO Many more fields...
+}
+
 /// An `Item` that should be deleted.
 #[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct DeletedItem {

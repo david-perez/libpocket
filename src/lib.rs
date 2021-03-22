@@ -30,6 +30,28 @@ enum ResponseState {
     NoMore,
 }
 
+#[derive(Debug, Deserialize, PartialEq)]
+pub struct ActionError {
+    pub code: u16,
+    pub message: String,
+
+    #[serde(rename = "type")]
+    pub error_type: String,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+struct ModifyResponseInner {
+    action_errors: Vec<Option<ActionError>>,
+    action_results: Vec<ModifiedItemOrBool>,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+#[serde(untagged)]
+enum ModifiedItemOrBool {
+    ModifiedItem(ModifiedItem),
+    Bool(bool),
+}
+
 /// Any fallible operation by the client models its errors using one of this type's variants.
 #[derive(Error, Debug)]
 pub enum ClientError {
@@ -40,7 +62,10 @@ pub enum ClientError {
     HttpError(#[from] reqwest::Error),
 }
 
-type ClientResponse<T> = std::result::Result<T, ClientError>;
+pub type ModifyResponse = Vec<Result<Option<ModifiedItem>, ActionError>>;
+
+pub type ClientResult<T> = Result<T, ClientError>;
+pub type ModifyResult = ClientResult<ModifyResponse>;
 
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "lowercase")]
@@ -185,7 +210,7 @@ impl Client {
     }
 
     // TODO Docs
-    pub async fn archive<'a, T>(&self, items: T)
+    pub async fn archive<'a, T>(&self, items: T) -> ModifyResult
     where
         T: IntoIterator<Item = &'a Item>,
     {
@@ -194,10 +219,10 @@ impl Client {
             time: chrono::Utc::now().timestamp() as u64,
         });
 
-        self.modify(actions).await;
+        self.modify(actions).await
     }
 
-    pub async fn readd<'a, T>(&self, items: T)
+    pub async fn readd<'a, T>(&self, items: T) -> ModifyResult
     where
         T: IntoIterator<Item = &'a Item>,
     {
@@ -206,10 +231,10 @@ impl Client {
             time: chrono::Utc::now().timestamp() as u64,
         });
 
-        self.modify(actions).await;
+        self.modify(actions).await
     }
 
-    pub async fn favorite<'a, T>(&self, items: T)
+    pub async fn favorite<'a, T>(&self, items: T) -> ModifyResult
     where
         T: IntoIterator<Item = &'a Item>,
     {
@@ -218,10 +243,10 @@ impl Client {
             time: chrono::Utc::now().timestamp() as u64,
         });
 
-        self.modify(actions).await;
+        self.modify(actions).await
     }
 
-    pub async fn unfavorite<'a, T>(&self, items: T)
+    pub async fn unfavorite<'a, T>(&self, items: T) -> ModifyResult
     where
         T: IntoIterator<Item = &'a Item>,
     {
@@ -230,10 +255,10 @@ impl Client {
             time: chrono::Utc::now().timestamp() as u64,
         });
 
-        self.modify(actions).await;
+        self.modify(actions).await
     }
 
-    pub async fn add_urls<'a, T>(&self, urls: T)
+    pub async fn add_urls<'a, T>(&self, urls: T) -> ModifyResult
     where
         T: IntoIterator<Item = &'a str>,
     {
@@ -242,10 +267,10 @@ impl Client {
             time: chrono::Utc::now().timestamp() as u64,
         });
 
-        self.modify(actions).await;
+        self.modify(actions).await
     }
 
-    pub async fn delete<'a, T>(&self, items: T)
+    pub async fn delete<'a, T>(&self, items: T) -> ModifyResult
     where
         T: IntoIterator<Item = &'a Item>,
     {
@@ -254,7 +279,7 @@ impl Client {
             time: chrono::Utc::now().timestamp() as u64,
         });
 
-        self.modify(actions).await;
+        self.modify(actions).await
     }
 
     fn auth(&self) -> serde_json::Value {
@@ -264,7 +289,7 @@ impl Client {
         })
     }
 
-    pub async fn get(&self, get_input: &GetInput) -> ClientResponse<ReadingList> {
+    pub async fn get(&self, get_input: &GetInput) -> ClientResult<ReadingList> {
         let method = url("/get");
 
         let payload =
@@ -287,7 +312,7 @@ impl Client {
         Ok(reading_list)
     }
 
-    pub async fn list_all(&self) -> ClientResponse<ReadingList> {
+    pub async fn list_all(&self) -> ClientResult<ReadingList> {
         let mut reading_list: ReadingList = Default::default();
 
         let mut offset = 0;
@@ -323,22 +348,59 @@ impl Client {
         Ok(reading_list)
     }
 
-    pub async fn modify<T>(&self, actions: T)
+    pub async fn modify<T>(&self, actions: T) -> ModifyResult
     where
         T: IntoIterator<Item = Action>,
     {
         let method = url("/send");
         let payload = json!({ "actions": actions.into_iter().collect::<Vec<Action>>() });
-        let _response_body = self.post_json(method, payload).await;
+        let response_body = self.post_json(method, payload).await?;
 
-        // TODO Parse response.
-        // response = "{\"action_results\":[false],\"action_errors\":[null],\"status\":1}"
-        // {"action_results":[true],"status":1}
+        // dbg!(&response_body);
 
-        // dbg!(&response);
+        let parsed =
+            parse_send_response_body(&response_body).map_err(|e| ClientError::ParseJson(e))?;
+
+        // dbg!(&parsed);
+
+        let ret = parsed
+            .action_results
+            .into_iter()
+            .zip(parsed.action_errors)
+            .map(|(action_result, action_error)| match action_error {
+                Some(action_error) => match action_result {
+                    ModifiedItemOrBool::ModifiedItem(modified_item) => {
+                        panic!(
+                            "Received an error yet the item was modified.
+`action_error` = `{:#?}`
+`modified_item` = `{:#?}`",
+                            action_error, modified_item
+                        );
+                    }
+                    ModifiedItemOrBool::Bool(success) => {
+                        if success {
+                            panic!(
+                                "Received an error yet action_result is true.
+`action_error` = `{:#?}`",
+                                action_error
+                            );
+                        }
+
+                        Err(action_error)
+                    }
+                },
+                None => match action_result {
+                    ModifiedItemOrBool::ModifiedItem(modified_item) => Ok(Some(modified_item)),
+                    ModifiedItemOrBool::Bool(_) => Ok(None),
+                },
+            })
+            .collect();
+
+        // TODO Should I return an iterator?
+        Ok(ret)
     }
 
-    async fn post_json(&self, url: Url, mut json: serde_json::Value) -> ClientResponse<String> {
+    async fn post_json(&self, url: Url, mut json: serde_json::Value) -> ClientResult<String> {
         json.merge(self.auth());
         let res = self.http.post(url).json(&json).send().await?;
 
@@ -372,12 +434,17 @@ fn parse_get_response_body(response: &str) -> Result<ResponseState, serde_json::
     }
 }
 
+fn parse_send_response_body(response: &str) -> Result<ModifyResponseInner, serde_json::Error> {
+    let ret: ModifyResponseInner = serde_json::from_str(response)?;
+    Ok(ret)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn deserialize_empty_list_object() {
+    fn deserialize_get_empty_list_object() {
         let response = r#"{ "list": {}}"#;
         match parse_get_response_body(&response) {
             Ok(ResponseState::Parsed(_)) => (),
@@ -386,7 +453,7 @@ mod tests {
     }
 
     #[test]
-    fn deserialize_empty_list_array() {
+    fn deserialize_get_empty_list_array() {
         let response = r#"{ "list": []}"#;
         match parse_get_response_body(&response) {
             Ok(ResponseState::NoMore) => (),
@@ -396,8 +463,55 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn deserialize_unparseable_response() {
+    fn deserialize_get_unparseable_response() {
         let response = r#"{ "list": "#;
         parse_get_response_body(&response).unwrap();
+    }
+
+    #[test]
+    fn deserialize_send_response() {
+        let response = r#"{ "action_errors": [null], "action_results": [true]}"#;
+        assert_eq!(
+            parse_send_response_body(&response).unwrap(),
+            ModifyResponseInner {
+                action_errors: vec![None],
+                action_results: vec![ModifiedItemOrBool::Bool(true)]
+            }
+        );
+    }
+
+    #[test]
+    fn deserialize_send_response_with_errors() {
+        let response = r#"
+{
+    "action_errors": [
+        {
+            "code": 422,
+            "message": "Invalid/non-existent URL",
+            "type": "Unprocessable Entity"
+        }
+    ],
+    "action_results": [
+        false
+    ],
+    "status": 1
+}"#;
+        assert_eq!(
+            parse_send_response_body(&response).unwrap(),
+            ModifyResponseInner {
+                action_errors: vec![Some(ActionError {
+                    code: 422,
+                    message: String::from("Invalid/non-existent URL"),
+                    error_type: String::from("Unprocessable Entity"),
+                })],
+                action_results: vec![ModifiedItemOrBool::Bool(false)]
+            }
+        );
+    }
+
+    #[test]
+    fn deserialize_send_unparseable_response() {
+        let response = r#"{ "action_errors": [null] }"#;
+        parse_send_response_body(&response).unwrap_err();
     }
 }
