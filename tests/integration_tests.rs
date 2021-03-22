@@ -207,10 +207,7 @@ fn assert_contains_item(reading_list: &ReadingList, item: &Item) {
     );
 }
 
-fn assert_contains_given_url_once<T: AsRef<str> + std::fmt::Display>(
-    reading_list: &ReadingList,
-    url: T,
-) {
+fn assert_contains_given_url_once(reading_list: &ReadingList, url: &str) {
     assert!(
         reading_list.contains_given_url_once(&url),
         "`reading_list` does not contain url.
@@ -221,10 +218,7 @@ fn assert_contains_given_url_once<T: AsRef<str> + std::fmt::Display>(
     );
 }
 
-fn assert_does_not_contain_given_url<T: AsRef<str> + std::fmt::Display>(
-    reading_list: &ReadingList,
-    url: T,
-) {
+fn assert_does_not_contain_given_url(reading_list: &ReadingList, url: &str) {
     assert!(
         reading_list.does_not_contain_given_url(&url),
         "`reading_list` contains url.
@@ -284,10 +278,10 @@ fn resource(filename: &str) -> std::io::Result<PathBuf> {
 // TODO Maybe some of these are well worth exposing from lib.rs.
 trait ReadingListExt {
     fn contains_item(&self, item: &Item) -> bool;
-    fn contains_given_url_once<T: AsRef<str>>(&self, url: T) -> bool;
-    fn does_not_contain_given_url<T: AsRef<str>>(&self, url: T) -> bool;
-    fn given_url_count<T: AsRef<str>>(&self, url: T) -> usize;
-    fn find_given_url<T: AsRef<str>>(&self, url: T) -> Option<&Item>;
+    fn contains_given_url_once(&self, url: &str) -> bool;
+    fn does_not_contain_given_url(&self, url: &str) -> bool;
+    fn given_url_count(&self, url: &str) -> usize;
+    fn find_given_url(&self, url: &str) -> Option<&Item>;
 }
 
 impl ReadingListExt for ReadingList {
@@ -299,15 +293,15 @@ impl ReadingListExt for ReadingList {
         }
     }
 
-    fn contains_given_url_once<T: AsRef<str>>(&self, url: T) -> bool {
+    fn contains_given_url_once(&self, url: &str) -> bool {
         self.given_url_count(url) == 1
     }
 
-    fn does_not_contain_given_url<T: AsRef<str>>(&self, url: T) -> bool {
+    fn does_not_contain_given_url(&self, url: &str) -> bool {
         self.given_url_count(url) == 0
     }
 
-    fn given_url_count<T: AsRef<str>>(&self, url: T) -> usize {
+    fn given_url_count(&self, url: &str) -> usize {
         self.values()
             .filter(|item_or_deleted_item| {
                 if let ItemOrDeletedItem::Item(item) = item_or_deleted_item {
@@ -319,7 +313,7 @@ impl ReadingListExt for ReadingList {
             .count()
     }
 
-    fn find_given_url<T: AsRef<str>>(&self, url: T) -> Option<&Item> {
+    fn find_given_url(&self, url: &str) -> Option<&Item> {
         self.values().find_map(|item_or_deleted_item| {
             if let ItemOrDeletedItem::Item(item) = item_or_deleted_item {
                 if item.given_url == url.as_ref() {
