@@ -129,8 +129,8 @@ pub enum DetailType {
 }
 
 #[serde_with::skip_serializing_none]
-#[builder(default)]
 #[derive(Debug, Serialize, Builder, Default)]
+#[builder(default)]
 pub struct GetInput {
     /// Filter by unread or archived items.
     state: Option<State>,

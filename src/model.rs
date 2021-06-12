@@ -186,8 +186,8 @@ pub struct DeletedItem {
     // We ignore those two fields here.
 }
 
-#[serde(untagged)]
 #[derive(Debug, Deserialize, PartialEq, Clone)]
+#[serde(untagged)]
 pub enum ItemOrDeletedItem {
     Item(Item),
     DeletedItem(DeletedItem),
