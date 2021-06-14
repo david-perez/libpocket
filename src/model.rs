@@ -31,6 +31,9 @@ pub struct Item {
     /// be the actual article the url linked to.
     pub resolved_url: String,
 
+    // TODO This field is returned empty ("") for some URLs (e.g.
+    // https://www.fit.vut.cz/research/publication-file/10979/WhatsApp.pdf). We should change this
+    // field to be of type `Option<String>` and convert empty `String`s to `None`s.
     /// The title that was saved along with the item.
     pub given_title: String,
 
