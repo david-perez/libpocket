@@ -25,7 +25,7 @@ pub enum AuthError {
     RequestAuthorizationCode(String),
 }
 
-pub fn authorization_url(token: &RequestToken) -> String {
+pub fn authorization_url(token: &str) -> String {
     format!(
         "https://getpocket.com/auth/authorize?request_token={}&redirect_uri={}",
         token, REDIRECT_URL
