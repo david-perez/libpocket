@@ -230,7 +230,7 @@ where
     D: Deserializer<'de>,
 {
     match Option::<String>::deserialize(deserializer)? {
-        Some(v) => match u64::from_str_radix(&v, 10) {
+        Some(v) => match v.parse::<u64>() {
             Ok(num) => Ok(Some(num)),
             Err(_) => Err(de::Error::invalid_value(
                 Unexpected::Str(&v),
