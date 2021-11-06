@@ -374,16 +374,12 @@ fn assert_modified_item(item: &Item, modified_item: &ModifiedItem) {
         // Pocket API did not process the item yet.
         assert_eq!(&modified_item.resolved_id, "0");
     }
-    if modified_item.resolved_url != item.resolved_url {
-        // Pocket API did not process the item yet.
-        assert_eq!(&modified_item.resolved_url, "");
+    match &modified_item.resolved_url {
+        Some(url) => {
+            assert_eq!(url, &item.resolved_url);
+        }
+        None => {
+            // Pocket API did not process the item yet.
+        }
     }
-
-    // The rest of the fields are relatively unimportant.
-    assert_eq!(modified_item.excerpt, item.excerpt);
-    assert_eq!(modified_item.is_article, item.is_article);
-    assert_eq!(modified_item.has_image, item.has_image);
-    assert_eq!(modified_item.has_video, item.has_video);
-    assert_eq!(modified_item.word_count, item.word_count);
-    assert_eq!(modified_item.domain_metadata, item.domain_metadata);
 }

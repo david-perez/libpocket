@@ -137,7 +137,7 @@ pub struct ModifiedItem {
 
     /// The final url of the item. For example if the item was a shortened bit.ly link, this will
     /// be the actual article the url linked to.
-    pub resolved_url: String,
+    pub resolved_url: Option<String>,
 
     // The title that was saved along with the item.
     // TODO I guess the API would return this if we set a title when adding the item.
@@ -147,21 +147,21 @@ pub struct ModifiedItem {
     // TODO I guess the API would return this if we set a title when adding the item.
     // pub resolved_title: String,
     /// The first few lines of the item (articles only).
-    pub excerpt: String,
+    pub excerpt: Option<String>,
 
     /// Whether the item is an article or not.
-    #[serde(deserialize_with = "deserialize_string_to_bool")]
-    pub is_article: bool,
+    #[serde(deserialize_with = "deserialize_optional_string_to_optional_bool")]
+    pub is_article: Option<bool>,
 
     /// Whether the item has/is an image.
-    pub has_image: HasImage,
+    pub has_image: Option<HasImage>,
 
     /// Whether the item has/is a video.
-    pub has_video: HasVideo,
+    pub has_video: Option<HasVideo>,
 
     /// How many words are in the article.
-    #[serde_as(as = "DisplayFromStr")]
-    pub word_count: u64,
+    #[serde(deserialize_with = "deserialize_optional_string_to_optional_u64")]
+    pub word_count: Option<u64>,
 
     /// Language code. This is sometimes set to an empty string.
     /// Observe that it is an `Option`, unlike in `Item`.
@@ -204,6 +204,40 @@ where
         "0" => Ok(false),
         "1" => Ok(true),
         other => Err(de::Error::invalid_value(Unexpected::Str(other), &"0 or 1")),
+    }
+}
+
+fn deserialize_optional_string_to_optional_bool<'de, D>(
+    deserializer: D,
+) -> std::result::Result<Option<bool>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    match Option::<String>::deserialize(deserializer)? {
+        Some(v) => match v.as_ref() {
+            "0" => Ok(Some(false)),
+            "1" => Ok(Some(true)),
+            other => Err(de::Error::invalid_value(Unexpected::Str(other), &"0 or 1")),
+        },
+        None => Ok(None),
+    }
+}
+
+fn deserialize_optional_string_to_optional_u64<'de, D>(
+    deserializer: D,
+) -> std::result::Result<Option<u64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    match Option::<String>::deserialize(deserializer)? {
+        Some(v) => match u64::from_str_radix(&v, 10) {
+            Ok(num) => Ok(Some(num)),
+            Err(_) => Err(de::Error::invalid_value(
+                Unexpected::Str(&v),
+                &"a number that fits in 64 bits",
+            )),
+        },
+        None => Ok(None),
     }
 }
 
