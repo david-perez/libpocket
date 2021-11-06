@@ -9,19 +9,27 @@
     "time_updated": "1615742687",
     "time_read": "0",
     "time_favorited": "0",
-    "sort_id": 1,
-    "resolved_title": "Ana Vidovic plays Asturias by Isaac Albéniz",
+    "sort_id": 3,
+    "resolved_title": "Ana Vidovic plays Asturias by Isaac Albéniz on a Jim Redgate classical guitar",
     "resolved_url": "http://www.youtube.com/watch?v=inBKFMB-yPg",
-    "excerpt": "Ana Vidovic plays Asturias by Isaac Albéniz. Visit us: http://www.siccasguitars.com",
+    "excerpt": "Ana Vidovic plays Asturias by Isaac Albéniz on a Jim Redgate classical guitar\nFind your next classical guitar in our online shop: \n\nhttps://www.siccasguitars.com \nJoin our online communities: \n*Instagram: https://www.instagram.com/siccasguitars/ \n*Facebook: https://www.facebook.com/siccasguitars/",
     "is_article": "0",
     "is_index": "0",
     "has_video": "2",
     "has_image": "1",
     "word_count": "0",
     "lang": "en",
+    "authors": {
+        "26814541": {
+            "item_id": "973981529",
+            "author_id": "26814541",
+            "name": "SiccasGuitars",
+            "url": "https://www.youtube.com/channel/UCR39sLAZ5wS_vrMo4tRylHw"
+        }
+    },
     "image": {
         "item_id": "973981529",
-        "src": "http://img.youtube.com/vi/inBKFMB-yPg/maxresdefault.jpg",
+        "src": "https://i.ytimg.com/vi/inBKFMB-yPg/maxresdefault.jpg",
         "width": "1280",
         "height": "720"
     },
@@ -29,7 +37,7 @@
         "1": {
             "item_id": "973981529",
             "image_id": "1",
-            "src": "http://img.youtube.com/vi/inBKFMB-yPg/maxresdefault.jpg",
+            "src": "https://i.ytimg.com/vi/inBKFMB-yPg/maxresdefault.jpg",
             "width": "1280",
             "height": "720",
             "credit": "",
