@@ -88,6 +88,7 @@ async fn archive_and_readd() {
     init();
 
     let client = client();
+    // This test requires that this URL be already added to the reading list.
     let url = "https://getpocket.com/developer/docs/v3/modify#action_archive";
 
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
