@@ -2,7 +2,7 @@
 authors = ["David Pérez <d@vidp.dev>"]
 name = "libpocket"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 derive_builder = "0.10"
