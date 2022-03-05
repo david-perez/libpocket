@@ -7,12 +7,15 @@
 
 use chrono::{TimeZone, Utc};
 use serde::de::DeserializeOwned;
-use std::path::{Path, PathBuf};
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+};
 use thiserror::Error;
 
 use libpocket::{
-    ActionError, Client, FavoriteStatus, GetInputBuilder, Item, ItemOrDeletedItem, ModifiedItem,
-    ModifyResponse, ReadingList, State, Status,
+    ActionError, Client, DetailType, FavoriteStatus, GetInputBuilder, Item, ItemOrDeletedItem,
+    ModifiedItem, ModifyResponse, ReadingList, State, Status, Tag,
 };
 
 fn init() {
@@ -114,9 +117,9 @@ async fn archive_and_readd() {
 async fn favorite_and_unfavorite() {
     init();
 
-    let url = "https://en.wikipedia.org/wiki/Favorite_(disambiguation)";
     let client = client();
 
+    let url = "https://en.wikipedia.org/wiki/Favorite_(disambiguation)";
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
     assert_not_favorited(&item);
 
@@ -133,6 +136,55 @@ async fn favorite_and_unfavorite() {
 
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
     assert_not_favorited(&item);
+}
+
+#[tokio::test]
+async fn add_tag_and_remove_tag() {
+    init();
+
+    let client = client();
+
+    let url = "https://en.wikipedia.org/wiki/Favorite_(disambiguation)";
+    let item = lookup_item_from_given_url(&client, url).await.unwrap();
+    assert_eq!(item.tags, None);
+
+    let id = item.item_id.clone();
+    let tag1 = String::from("tag1");
+    let tag2 = String::from("tag1");
+    let tags = vec![tag1.clone(), tag2.clone()];
+    let res = client
+        .modify(vec![libpocket::Action::TagsAdd {
+            item_id: id.clone(),
+            tags: &tags.clone(),
+            time: chrono::Utc::now().timestamp() as u64,
+        }])
+        .await
+        .unwrap();
+    assert_one_not_modified_item(&res);
+
+    let item = lookup_item_from_given_url(&client, url).await.unwrap();
+    let expected_tags = tags.iter().map(|tag| {
+        (
+            tag.clone(),
+            Tag {
+                item_id: id.clone(),
+                tag: tag.clone(),
+            },
+        )
+    });
+    assert_eq!(item.tags, Some(BTreeMap::from_iter(expected_tags)));
+
+    let res = client
+        .modify(vec![libpocket::Action::TagsRemove {
+            item_id: id.clone(),
+            tags: &tags,
+            time: chrono::Utc::now().timestamp() as u64,
+        }])
+        .await
+        .unwrap();
+    assert_one_not_modified_item(&res);
+    let item = lookup_item_from_given_url(&client, url).await.unwrap();
+    assert_eq!(item.tags, None);
 }
 
 fn assert_one_modified_item(modify_response: &ModifyResponse, item: &Item) {
@@ -236,6 +288,7 @@ async fn lookup_item_from_given_url(client: &Client, given_url: &str) -> Option<
             &GetInputBuilder::default()
                 .state(Some(State::All))
                 .search(Some(String::from(given_url)))
+                .detail_type(Some(DetailType::Complete))
                 .build()
                 .unwrap(),
         )

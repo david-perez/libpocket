@@ -168,20 +168,60 @@ pub struct GetInput {
 }
 
 #[derive(Debug, Serialize)]
-#[serde(rename_all = "lowercase", tag = "action")]
+#[serde(rename_all = "snake_case", tag = "action")]
 // TODO Turns out that while the docs specify the timestamps have to be strings, sending  numbers
 // works fine.
 // TODO We can probably make it so that `url` and `item_id` can be references.
 // `Add` and `Readd` are the only ones for which the API returns an object akin to an `Item`.
 // The rest of the actions return `true`.
-pub enum Action {
-    Add { url: String, time: u64 }, // TODO More options
-    Archive { item_id: ItemId, time: u64 },
-    Readd { item_id: ItemId, time: u64 },
-    Favorite { item_id: ItemId, time: u64 },
-    Unfavorite { item_id: ItemId, time: u64 },
-    Delete { item_id: ItemId, time: u64 },
+pub enum Action<'a> {
+    Add {
+        url: String,
+        time: u64,
+    }, // TODO More options
+    Archive {
+        item_id: ItemId,
+        time: u64,
+    },
+    Readd {
+        item_id: ItemId,
+        time: u64,
+    },
+    Favorite {
+        item_id: ItemId,
+        time: u64,
+    },
+    Unfavorite {
+        item_id: ItemId,
+        time: u64,
+    },
+    Delete {
+        item_id: ItemId,
+        time: u64,
+    },
+    // For tagging-related actions, it seems like the API also accepts an array as the list of
+    // tags, but the docs only mention a comma-separated string.
+    TagsAdd {
+        item_id: ItemId,
+        #[serde(serialize_with = "join_list")]
+        tags: &'a [String],
+        time: u64,
+    },
+    TagsRemove {
+        item_id: ItemId,
+        #[serde(serialize_with = "join_list")]
+        tags: &'a [String],
+        time: u64,
+    },
     // TODO the rest.
+}
+
+fn join_list<'a, S>(list: &'a [String], serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    let v = list.join(",");
+    serializer.serialize_str(&v)
 }
 
 #[derive(Debug)]
@@ -362,9 +402,9 @@ impl Client {
         Ok(reading_list)
     }
 
-    pub async fn modify<T>(&self, actions: T) -> ModifyResult
+    pub async fn modify<'a, T>(&self, actions: T) -> ModifyResult
     where
-        T: IntoIterator<Item = Action>,
+        T: IntoIterator<Item = Action<'a>>,
     {
         info!("Client::modify()");
         let method = url("/send");
