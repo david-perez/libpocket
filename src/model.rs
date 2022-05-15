@@ -254,7 +254,7 @@ pub struct DomainMetadata {
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct MainImage {
     /// The `Item`'s `item_id` this image is associated with.
-    pub item_id: String,
+    pub item_id: ItemId,
 
     /// A URL where the image is found.
     pub src: String,
@@ -273,7 +273,7 @@ pub struct MainImage {
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct Image {
     /// The `Item`'s `item_id` this image is associated with.
-    pub item_id: String,
+    pub item_id: ItemId,
 
     /// An id for the image. An incremental integer.
     pub image_id: String,
@@ -304,7 +304,7 @@ pub struct Image {
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct Video {
     /// The `Item`'s `item_id` this video is associated with.
-    pub item_id: String,
+    pub item_id: ItemId,
 
     /// An id for the video. An incremental integer.
     pub video_id: String,
@@ -338,7 +338,7 @@ pub struct Video {
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct Author {
     /// The `Item`'s `item_id` this author is associated with.
-    pub item_id: String,
+    pub item_id: ItemId,
 
     /// An id for the author.
     pub author_id: String,
@@ -356,7 +356,7 @@ pub struct Author {
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct Tag {
     /// The `Item`'s `item_id` this tag is applied to.
-    pub item_id: String,
+    pub item_id: ItemId,
 
     /// Tag name.
     pub tag: String,
