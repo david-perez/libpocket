@@ -56,7 +56,7 @@ async fn add_and_delete() {
 
     let item = res.find_given_url(&url).unwrap();
     assert_one_modified_item(&res_add, &item);
-    assert_within_2_seconds_of_now(item.time_added);
+    assert_within_5_seconds_of_now(item.time_added);
     // Pocket has a bug (?) whereby `time_updated` is sometimes set to 1 second after `time_X`,
     // where `X` is the action that has just been performed. It seems like their backend is not
     // updating these two fields atomically. In this and the rest of the tests, we therefore check
@@ -102,7 +102,7 @@ async fn archive_and_readd() {
 
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
     assert_eq!(item.status, Status::Read);
-    assert_within_2_seconds_of_now(item.time_read);
+    assert_within_5_seconds_of_now(item.time_read);
     assert_within_2_seconds(item.time_updated, item.time_read);
 
     let res = client.readd(vec![&item]).await.unwrap();
@@ -110,7 +110,7 @@ async fn archive_and_readd() {
 
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
     assert_unread(&item);
-    assert_within_2_seconds_of_now(item.time_updated);
+    assert_within_5_seconds_of_now(item.time_updated);
 }
 
 #[tokio::test]
@@ -128,7 +128,7 @@ async fn favorite_and_unfavorite() {
 
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
     assert_eq!(item.favorite, FavoriteStatus::Favorited);
-    assert_within_2_seconds_of_now(item.time_favorited);
+    assert_within_5_seconds_of_now(item.time_favorited);
     assert_within_2_seconds(item.time_updated, item.time_favorited);
 
     let res = client.unfavorite(vec![&item]).await.unwrap();
@@ -220,15 +220,15 @@ fn assert_within_2_seconds(t1: u64, t2: u64) {
     );
 }
 
-fn assert_within_2_seconds_of_now(timestamp: u64) {
+fn assert_within_5_seconds_of_now(timestamp: u64) {
     let past = Utc.timestamp(timestamp as i64, 0);
     let now = Utc::now();
     let duration = now.signed_duration_since(past);
-    let within_2_seconds_of_now = 0 <= duration.num_seconds() && duration.num_seconds() <= 2;
+    let within_5_seconds_of_now = 0 <= duration.num_seconds() && duration.num_seconds() <= 5;
 
     assert!(
-        within_2_seconds_of_now,
-        "`timestamp`: {} is not within 2 seconds of now: {}",
+        within_5_seconds_of_now,
+        "`timestamp`: {} is not within 5 seconds of now: {}",
         timestamp, now
     );
 }
