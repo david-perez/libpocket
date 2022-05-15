@@ -74,9 +74,9 @@ To run the integration tests, you need to have both `POCKET_CONSUMER_KEY` and
 1. have the URL https://getpocket.com/developer/docs/v3/modify#action_archive
    in its reading list; and
 1. have the items [`pdf.json`](res/pdf.json), [`blog.json`](res/blog.json), and
-   [`video.json`](res/video.json) in its reading list. Note that the timestamps
-   and identifiers are from my Pocket test account, so you will have to change
-   those after recreating the items in your account.
+   [`video.json`](res/video.json) in its reading list (including their tags).
+   Note that the timestamps and identifiers are from my Pocket test account, so
+   you will have to change those after recreating the items in your account.
 
 ```sh
 ➜ cargo test --test integration_tests
