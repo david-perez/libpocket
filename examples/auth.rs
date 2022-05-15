@@ -48,7 +48,7 @@ async fn main() -> Result<(), AuthError> {
 
     let authorization_code = get_authorization_code(&consumer_key, request_token).await?;
 
-    println!(r#"export POCKET_CONSUMER_KEY="{}"#, &consumer_key);
+    println!(r#"export POCKET_CONSUMER_KEY="{}""#, &consumer_key);
     println!(
         r#"export POCKET_AUTHORIZATION_CODE="{}""#,
         &authorization_code
