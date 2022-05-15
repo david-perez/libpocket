@@ -275,7 +275,7 @@ impl Client {
         info!("Client::archive()");
         let actions = items.into_iter().map(|item| Action::Archive {
             item_id: item.item_id.clone(),
-            time: chrono::Utc::now().timestamp() as u64,
+            time: now(),
         });
 
         self.modify(actions).await
@@ -288,7 +288,7 @@ impl Client {
         info!("Client::readd()");
         let actions = items.into_iter().map(|item| Action::Readd {
             item_id: item.item_id.clone(),
-            time: chrono::Utc::now().timestamp() as u64,
+            time: now(),
         });
 
         self.modify(actions).await
@@ -301,7 +301,7 @@ impl Client {
         info!("Client::favorite()");
         let actions = items.into_iter().map(|item| Action::Favorite {
             item_id: item.item_id.clone(),
-            time: chrono::Utc::now().timestamp() as u64,
+            time: now(),
         });
 
         self.modify(actions).await
@@ -314,7 +314,7 @@ impl Client {
         info!("Client::unfavorite()");
         let actions = items.into_iter().map(|item| Action::Unfavorite {
             item_id: item.item_id.clone(),
-            time: chrono::Utc::now().timestamp() as u64,
+            time: now(),
         });
 
         self.modify(actions).await
@@ -327,7 +327,7 @@ impl Client {
         info!("Client::add_urls()");
         let actions = urls.into_iter().map(|url| Action::Add {
             url: String::from(url),
-            time: chrono::Utc::now().timestamp() as u64,
+            time: now(),
         });
 
         self.modify(actions).await
@@ -340,7 +340,7 @@ impl Client {
         info!("Client::delete()");
         let actions = items.into_iter().map(|item| Action::Delete {
             item_id: item.item_id.clone(),
-            time: chrono::Utc::now().timestamp() as u64,
+            time: now(),
         });
 
         self.modify(actions).await
@@ -505,6 +505,15 @@ fn parse_send_response_body(response: &str) -> Result<ModifyResponseInner, serde
     let ret: ModifyResponseInner = serde_json::from_str(response)?;
     debug!("Parsed response body: {:#?}", &ret);
     Ok(ret)
+}
+
+fn now() -> u64 {
+    use std::time::SystemTime;
+
+    SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .expect("negative elapsed time since the Unix epoch")
+        .as_secs()
 }
 
 #[cfg(test)]

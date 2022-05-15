@@ -5,7 +5,6 @@
 //! and asserted on. However, each of them does so on disjoint parts of the state, so the tests can
 //! still be run in parallel.
 
-use chrono::{TimeZone, Utc};
 use serde::de::DeserializeOwned;
 use std::{
     collections::BTreeMap,
@@ -46,7 +45,7 @@ async fn add_and_delete() {
 
     // In the future we may add the Git SHA (grabbing it from an env var or using e.g.
     // https://crates.io/crates/last-git-commit)
-    let time_base_64 = base64::encode(Utc::now().to_string());
+    let time_base_64 = base64::encode(now().to_string());
     let url = format!("https://httpbin.org/base64/{}", time_base_64);
 
     let res_add = client.add_urls(vec![url.as_str()]).await.unwrap();
@@ -156,7 +155,7 @@ async fn add_tag_and_remove_tag() {
         .modify(vec![libpocket::Action::TagsAdd {
             item_id: id.clone(),
             tags: &tags.clone(),
-            time: chrono::Utc::now().timestamp() as u64,
+            time: now(),
         }])
         .await
         .unwrap();
@@ -178,7 +177,7 @@ async fn add_tag_and_remove_tag() {
         .modify(vec![libpocket::Action::TagsRemove {
             item_id: id.clone(),
             tags: &tags,
-            time: chrono::Utc::now().timestamp() as u64,
+            time: now(),
         }])
         .await
         .unwrap();
@@ -208,10 +207,7 @@ fn assert_one_not_modified_item(modify_response: &ModifyResponse) {
 }
 
 fn assert_within_2_seconds(t1: u64, t2: u64) {
-    let t1 = Utc.timestamp(t1 as i64, 0);
-    let t2 = Utc.timestamp(t2 as i64, 0);
-    let duration = t1.signed_duration_since(t2);
-    let within_2_seconds = duration.num_seconds().abs() <= 3;
+    let within_2_seconds = ((t1 as i64) - (t2 as i64)).abs() <= 3;
 
     assert!(
         within_2_seconds,
@@ -220,16 +216,15 @@ fn assert_within_2_seconds(t1: u64, t2: u64) {
     );
 }
 
-fn assert_within_5_seconds_of_now(timestamp: u64) {
-    let past = Utc.timestamp(timestamp as i64, 0);
-    let now = Utc::now();
-    let duration = now.signed_duration_since(past);
-    let within_5_seconds_of_now = 0 <= duration.num_seconds() && duration.num_seconds() <= 5;
+fn assert_within_5_seconds_of_now(past: u64) {
+    let now = now();
+    let duration = now - past;
+    let within_5_seconds_of_now = duration <= 5;
 
     assert!(
         within_5_seconds_of_now,
         "`timestamp`: {} is not within 5 seconds of now: {}",
-        timestamp, now
+        past, now
     );
 }
 
@@ -436,4 +431,13 @@ fn assert_modified_item(item: &Item, modified_item: &ModifiedItem) {
             // Pocket API did not process the item yet.
         }
     }
+}
+
+fn now() -> u64 {
+    use std::time::SystemTime;
+
+    SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .expect("negative elapsed time since the Unix epoch")
+        .as_secs()
 }
