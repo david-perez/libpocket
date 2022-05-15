@@ -10,14 +10,14 @@ Applications"] dashboard.  Retrieve a `POCKET_AUTHORIZATION_CODE` for your
 example program and following the instructions.
 
 ```sh
-➜ POCKET_CONSUMER_KEY="<your-pocket-consumer-key>" cargo run --example auth
+POCKET_CONSUMER_KEY="<your-pocket-consumer-key>" cargo run --example auth
 ```
 
 Set and export the variables in your shell for convenience:
 
 ```sh
-➜ export POCKET_CONSUMER_KEY="<your-pocket-consumer-key>"
-  export POCKET_AUTHORIZATION_CODE="<your-pocket-authorization-code>"
+export POCKET_CONSUMER_KEY="<your-pocket-consumer-key>"
+export POCKET_AUTHORIZATION_CODE="<your-pocket-authorization-code>"
 ```
 
 ["My Applications"]: https://getpocket.com/developer/apps/
@@ -30,7 +30,7 @@ use this library, like the [example programs] or the tests. For example, to run
 all tests with debug information and backtraces:
 
 ```sh
-➜ RUST_LOG=DEBUG RUST_BACKTRACE=1 cargo test
+RUST_LOG=DEBUG RUST_BACKTRACE=1 cargo test
 ```
 
 [`log`]: https://docs.rs/log
@@ -43,17 +43,17 @@ API directly in shell script without having to use this library (they are using
 [HTTPie](https://httpie.io/)):
 
 ```sh
-➜ http https://getpocket.com/v3/get \
-    consumer_key="$POCKET_CONSUMER_KEY" \
-    access_token="$POCKET_AUTHORIZATION_CODE" \
-    state=all \
-    detailType=complete \
-    search="Ana Vidovic"
-➜ http https://getpocket.com/v3/send \
-    consumer_key="$POCKET_CONSUMER_KEY" \
-    access_token="$POCKET_AUTHORIZATION_CODE" \
-    actions=[{action="add", time=0, url="https://www.rust-lang.org/"}]
-➜ http https://getpocket.com/v3/send < json_document.json
+http https://getpocket.com/v3/get \
+  consumer_key="$POCKET_CONSUMER_KEY" \
+  access_token="$POCKET_AUTHORIZATION_CODE" \
+  state=all \
+  detailType=complete \
+  search="Ana Vidovic"
+http https://getpocket.com/v3/send \
+  consumer_key="$POCKET_CONSUMER_KEY" \
+  access_token="$POCKET_AUTHORIZATION_CODE" \
+  actions=[{action="add", time=0, url="https://www.rust-lang.org/"}]
+http https://getpocket.com/v3/send < json_document.json
 ```
 
 See Pocket's [API documentation] for more endpoints and parameters.
@@ -65,7 +65,7 @@ See Pocket's [API documentation] for more endpoints and parameters.
 To run the unit tests, you need to have `POCKET_CONSUMER_KEY` set.
 
 ```sh
-➜ cargo test --lib
+cargo test --lib
 ```
 
 To run the integration tests, you need to have both `POCKET_CONSUMER_KEY` and
@@ -79,7 +79,7 @@ To run the integration tests, you need to have both `POCKET_CONSUMER_KEY` and
    you will have to change those after recreating the items in your account.
 
 ```sh
-➜ cargo test --test integration_tests
+cargo test --test integration_tests
 ```
 
 ## Credits
