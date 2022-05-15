@@ -32,13 +32,23 @@ enum ResponseState {
     NoMore,
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Error)]
 pub struct ActionError {
     pub code: u16,
     pub message: String,
 
     #[serde(rename = "type")]
     pub error_type: String,
+}
+
+impl std::fmt::Display for ActionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "error {} of type {}: {}",
+            self.code, self.message, self.error_type
+        )
+    }
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
