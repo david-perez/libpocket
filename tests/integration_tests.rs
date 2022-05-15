@@ -138,18 +138,21 @@ async fn favorite_and_unfavorite() {
 }
 
 #[tokio::test]
-async fn add_tag_and_remove_tag() {
+async fn add_replace_and_remove_tags() {
     init();
 
     let client = client();
 
-    let url = "https://en.wikipedia.org/wiki/Favorite_(disambiguation)";
+    let url = "https://medium.com/makingtuenti/we-made-the-impossible-possible-in-the-tuenti-challenge-8-edition-619df6d56381";
+
+    // No tags at the beginning.
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
+    let id = item.item_id.clone();
     assert_eq!(item.tags, None);
 
-    let id = item.item_id.clone();
+    // Add tags.
     let tag1 = String::from("tag1");
-    let tag2 = String::from("tag1");
+    let tag2 = String::from("tag2");
     let tags = vec![tag1.clone(), tag2.clone()];
     let res = client
         .modify(vec![libpocket::Action::TagsAdd {
@@ -162,17 +165,25 @@ async fn add_tag_and_remove_tag() {
     assert_one_not_modified_item(&res);
 
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
-    let expected_tags = tags.iter().map(|tag| {
-        (
-            tag.clone(),
-            Tag {
-                item_id: id.clone(),
-                tag: tag.clone(),
-            },
-        )
-    });
-    assert_eq!(item.tags, Some(BTreeMap::from_iter(expected_tags)));
+    assert_eq!(item.tags, Some(expected_tags(tags, id.clone())));
 
+    // Replace tags.
+    let tag3 = String::from("tag3");
+    let tag4 = String::from("tag4");
+    let tags = vec![tag3, tag4];
+    let res = client
+        .modify(vec![libpocket::Action::TagsReplace {
+            item_id: id.clone(),
+            tags: &tags,
+            time: now(),
+        }])
+        .await
+        .unwrap();
+    assert_one_not_modified_item(&res);
+    let item = lookup_item_from_given_url(&client, url).await.unwrap();
+    assert_eq!(item.tags, Some(expected_tags(tags.clone(), id.clone())));
+
+    // Remove tags.
     let res = client
         .modify(vec![libpocket::Action::TagsRemove {
             item_id: id.clone(),
@@ -184,6 +195,22 @@ async fn add_tag_and_remove_tag() {
     assert_one_not_modified_item(&res);
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
     assert_eq!(item.tags, None);
+}
+
+// Small helper function to get the expected `BTreeMap` of tags.
+fn expected_tags(
+    tags: impl IntoIterator<Item = String>,
+    id: libpocket::ItemId,
+) -> BTreeMap<String, Tag> {
+    BTreeMap::from_iter(tags.into_iter().map(|tag| {
+        (
+            tag.clone(),
+            Tag {
+                item_id: id.clone(),
+                tag: tag.clone(),
+            },
+        )
+    }))
 }
 
 fn assert_one_modified_item(modify_response: &ModifyResponse, item: &Item) {

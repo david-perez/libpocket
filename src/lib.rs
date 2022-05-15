@@ -223,6 +223,12 @@ pub enum Action<'a> {
         tags: &'a [String],
         time: u64,
     },
+    TagsReplace {
+        item_id: ItemId,
+        #[serde(serialize_with = "join_list")]
+        tags: &'a [String],
+        time: u64,
+    },
     // TODO the rest.
 }
 
