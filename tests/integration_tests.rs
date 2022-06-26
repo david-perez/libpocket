@@ -156,7 +156,7 @@ async fn add_replace_and_remove_tags() {
     let tags = vec![tag1.clone(), tag2.clone()];
     let res = client
         .modify(vec![libpocket::Action::TagsAdd {
-            item_id: id.clone(),
+            item_id: &id,
             tags: &tags.clone(),
             time: now(),
         }])
@@ -173,7 +173,7 @@ async fn add_replace_and_remove_tags() {
     let tags = vec![tag3, tag4];
     let res = client
         .modify(vec![libpocket::Action::TagsReplace {
-            item_id: id.clone(),
+            item_id: &id,
             tags: &tags,
             time: now(),
         }])
@@ -186,7 +186,7 @@ async fn add_replace_and_remove_tags() {
     // Remove tags.
     let res = client
         .modify(vec![libpocket::Action::TagsRemove {
-            item_id: id.clone(),
+            item_id: &id,
             tags: &tags,
             time: now(),
         }])

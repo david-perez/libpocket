@@ -181,50 +181,49 @@ pub struct GetInput {
 #[serde(rename_all = "snake_case", tag = "action")]
 // TODO Turns out that while the docs specify the timestamps have to be strings, sending  numbers
 // works fine.
-// TODO We can probably make it so that `url` and `item_id` can be references.
 // `Add` and `Readd` are the only ones for which the API returns an object akin to an `Item`.
 // The rest of the actions return `true`.
 pub enum Action<'a> {
     Add {
-        url: String,
+        url: &'a str,
         time: u64,
     }, // TODO More options
     Archive {
-        item_id: ItemId,
+        item_id: &'a ItemId,
         time: u64,
     },
     Readd {
-        item_id: ItemId,
+        item_id: &'a ItemId,
         time: u64,
     },
     Favorite {
-        item_id: ItemId,
+        item_id: &'a ItemId,
         time: u64,
     },
     Unfavorite {
-        item_id: ItemId,
+        item_id: &'a ItemId,
         time: u64,
     },
     Delete {
-        item_id: ItemId,
+        item_id: &'a ItemId,
         time: u64,
     },
     // For tagging-related actions, it seems like the API also accepts an array as the list of
     // tags, but the docs only mention a comma-separated string.
     TagsAdd {
-        item_id: ItemId,
+        item_id: &'a ItemId,
         #[serde(serialize_with = "join_list")]
         tags: &'a [String],
         time: u64,
     },
     TagsRemove {
-        item_id: ItemId,
+        item_id: &'a ItemId,
         #[serde(serialize_with = "join_list")]
         tags: &'a [String],
         time: u64,
     },
     TagsReplace {
-        item_id: ItemId,
+        item_id: &'a ItemId,
         #[serde(serialize_with = "join_list")]
         tags: &'a [String],
         time: u64,
@@ -280,7 +279,7 @@ impl Client {
     {
         info!("Client::archive()");
         let actions = items.into_iter().map(|item| Action::Archive {
-            item_id: item.item_id.clone(),
+            item_id: &item.item_id,
             time: now(),
         });
 
@@ -293,7 +292,7 @@ impl Client {
     {
         info!("Client::readd()");
         let actions = items.into_iter().map(|item| Action::Readd {
-            item_id: item.item_id.clone(),
+            item_id: &item.item_id,
             time: now(),
         });
 
@@ -306,7 +305,7 @@ impl Client {
     {
         info!("Client::favorite()");
         let actions = items.into_iter().map(|item| Action::Favorite {
-            item_id: item.item_id.clone(),
+            item_id: &item.item_id,
             time: now(),
         });
 
@@ -319,7 +318,7 @@ impl Client {
     {
         info!("Client::unfavorite()");
         let actions = items.into_iter().map(|item| Action::Unfavorite {
-            item_id: item.item_id.clone(),
+            item_id: &item.item_id,
             time: now(),
         });
 
@@ -331,10 +330,7 @@ impl Client {
         T: IntoIterator<Item = &'a str>,
     {
         info!("Client::add_urls()");
-        let actions = urls.into_iter().map(|url| Action::Add {
-            url: String::from(url),
-            time: now(),
-        });
+        let actions = urls.into_iter().map(|url| Action::Add { url, time: now() });
 
         self.modify(actions).await
     }
@@ -345,7 +341,7 @@ impl Client {
     {
         info!("Client::delete()");
         let actions = items.into_iter().map(|item| Action::Delete {
-            item_id: item.item_id.clone(),
+            item_id: &item.item_id,
             time: now(),
         });
 
