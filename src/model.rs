@@ -362,7 +362,7 @@ pub struct Tag {
     pub tag: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum FavoriteStatus {
     #[serde(rename = "0")]
     NotFavorited,
@@ -370,7 +370,7 @@ pub enum FavoriteStatus {
     Favorited,
 }
 
-#[derive(Debug, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq)]
 pub enum Status {
     #[serde(rename = "0")]
     Unread,
