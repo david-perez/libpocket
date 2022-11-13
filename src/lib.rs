@@ -240,18 +240,18 @@ where
 }
 
 #[derive(Debug)]
-pub struct Client {
+pub struct Client<'s> {
     /// Internal member to perform requests to the Pocket API.
     http: reqwest::Client,
 
     /// Your application's consumer key.
-    consumer_key: String,
+    consumer_key: &'s str,
 
     /// The specific user's access token code.
-    authorization_code: String,
+    authorization_code: &'s str,
 }
 
-impl Client {
+impl<'s> Client<'s> {
     /// Initialize a Pocket API client.
     ///
     /// Parameters:
@@ -259,7 +259,7 @@ impl Client {
     /// - authorization_code - the specific user's access token code
     ///
     /// [Reference](https://getpocket.com/developer/docs/authentication)
-    pub fn new(consumer_key: String, authorization_code: String) -> Self {
+    pub fn new(consumer_key: &'s str, authorization_code: &'s str) -> Self {
         info!("Client::new()");
         debug!(
             "consumer_key: {}, authorization_code: {}",

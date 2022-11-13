@@ -54,7 +54,7 @@ async fn main() -> Result<(), AuthError> {
         &authorization_code
     );
 
-    let _client = Client::new(consumer_key, authorization_code);
+    let _client = Client::new(&consumer_key, &authorization_code);
 
     Ok(())
 }

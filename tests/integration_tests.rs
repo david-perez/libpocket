@@ -304,7 +304,7 @@ fn assert_does_not_contain_given_url(reading_list: &ReadingList, url: &str) {
     );
 }
 
-async fn lookup_item_from_given_url(client: &Client, given_url: &str) -> Option<Item> {
+async fn lookup_item_from_given_url(client: &Client<'_>, given_url: &str) -> Option<Item> {
     let res = client
         .get(
             &GetInputBuilder::default()
@@ -322,12 +322,11 @@ async fn lookup_item_from_given_url(client: &Client, given_url: &str) -> Option<
     res.find_given_url(given_url).cloned()
 }
 
-fn client() -> Client {
-    let consumer_key = std::env::var("POCKET_CONSUMER_KEY").expect("POCKET_CONSUMER_KEY not set");
-    let authorization_code =
-        std::env::var("POCKET_AUTHORIZATION_CODE").expect("POCKET_AUTHORIZATION_CODE not set");
+fn client<'s>() -> Client<'s> {
+    let consumer_key = std::env!("POCKET_CONSUMER_KEY");
+    let authorization_code = std::env!("POCKET_AUTHORIZATION_CODE");
 
-    Client::new(consumer_key, authorization_code)
+    Client::new(&consumer_key, &authorization_code)
 }
 
 #[derive(Debug, Error)]
