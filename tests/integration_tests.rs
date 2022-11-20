@@ -5,6 +5,7 @@
 //! and asserted on. However, each of them does so on disjoint parts of the state, so the tests can
 //! still be run in parallel.
 
+use pretty_assertions::assert_eq;
 use serde::de::DeserializeOwned;
 use std::{
     collections::BTreeMap,
@@ -25,16 +26,16 @@ fn init() {
 async fn list_all() {
     init();
 
-    let res = client().list_all().await.unwrap();
+    let reading_list = client().list_all().await.unwrap();
 
-    assert!(!res.is_empty());
+    assert!(!reading_list.is_empty());
 
     // This test requires that the test account contain these 3 items in its reading list.
-    let items = vec!["pdf.json", "blog.json", "video.json"]
+    let items = ["pdf.json", "blog.json", "video.json"]
         .into_iter()
         .map(|filename| deserialize_resource(filename).unwrap());
 
-    assert_contains_items(&res, items);
+    assert_contains_items(&reading_list, items);
 }
 
 #[tokio::test]
@@ -48,31 +49,31 @@ async fn add_and_delete() {
     let time_base_64 = base64::encode(now().to_string());
     let url = format!("https://httpbin.org/base64/{}", time_base_64);
 
-    let res_add = client.add_urls(vec![url.as_str()]).await.unwrap();
+    let res = client.add_urls([url.as_str()]).await.unwrap();
 
-    let res = client.list_all().await.unwrap();
-    assert_contains_given_url_once(&res, &url);
+    let reading_list = client.list_all().await.unwrap();
+    reading_list.assert_contains_given_url_once(&url);
 
-    let item = res.find_given_url(&url).unwrap();
-    assert_one_modified_item(&res_add, &item);
+    let item = reading_list.find_given_url(&url).unwrap();
+    assert_one_modified_item(&res, &item);
     assert_within_5_seconds_of_now(item.time_added);
     // Pocket has a bug (?) whereby `time_updated` is sometimes set to 1 second after `time_X`,
     // where `X` is the action that has just been performed. It seems like their backend is not
     // updating these two fields atomically. In this and the rest of the tests, we therefore check
-    // that `time_updated` is not exactly equal to what we expect, but within a 2 second range.
-    assert_within_2_seconds(item.time_updated, item.time_added);
+    // that `time_updated` is not exactly equal to what we expect, but within a small second range.
+    assert_within_3_seconds(item.time_updated, item.time_added);
 
-    let res = client.delete(vec![item]).await.unwrap();
+    let res = client.delete([item]).await.unwrap();
     assert_one_not_modified_item(&res);
-    let res = client.list_all().await.unwrap();
-    assert_does_not_contain_given_url(&res, &url);
+    let reading_list = client.list_all().await.unwrap();
+    reading_list.assert_does_not_contain_given_url(&url);
 }
 
 #[tokio::test]
 async fn add_invalid_url() {
     init();
 
-    let res = client().add_urls(vec!["savemysoul"]).await.unwrap();
+    let res = client().add_urls(["savemysoul"]).await.unwrap();
     assert_eq!(res.len(), 1);
     let action_error = res.get(0).unwrap().as_ref().unwrap_err();
     assert_eq!(
@@ -96,15 +97,15 @@ async fn archive_and_readd() {
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
     assert_unread(&item);
 
-    let res = client.archive(vec![&item]).await.unwrap();
+    let res = client.archive([&item]).await.unwrap();
     assert_one_not_modified_item(&res);
 
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
     assert_eq!(item.status, Status::Read);
     assert_within_5_seconds_of_now(item.time_read);
-    assert_within_2_seconds(item.time_updated, item.time_read);
+    assert_within_3_seconds(item.time_updated, item.time_read);
 
-    let res = client.readd(vec![&item]).await.unwrap();
+    let res = client.readd([&item]).await.unwrap();
     assert_one_modified_item(&res, &item);
 
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
@@ -122,15 +123,15 @@ async fn favorite_and_unfavorite() {
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
     assert_not_favorited(&item);
 
-    let res = client.favorite(vec![&item]).await.unwrap();
+    let res = client.favorite([&item]).await.unwrap();
     assert_one_not_modified_item(&res);
 
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
     assert_eq!(item.favorite, FavoriteStatus::Favorited);
     assert_within_5_seconds_of_now(item.time_favorited);
-    assert_within_2_seconds(item.time_updated, item.time_favorited);
+    assert_within_3_seconds(item.time_updated, item.time_favorited);
 
-    let res = client.unfavorite(vec![&item]).await.unwrap();
+    let res = client.unfavorite([&item]).await.unwrap();
     assert_one_not_modified_item(&res);
 
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
@@ -147,17 +148,16 @@ async fn add_replace_and_remove_tags() {
 
     // No tags at the beginning.
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
-    let id = item.item_id.clone();
     assert_eq!(item.tags, None);
 
     // Add tags.
-    let tag1 = String::from("tag1");
-    let tag2 = String::from("tag2");
-    let tags = vec![tag1.clone(), tag2.clone()];
+    let tag1 = "tag1";
+    let tag2 = "tag2";
+    let tags = [tag1, tag2];
     let res = client
-        .modify(vec![libpocket::Action::TagsAdd {
-            item_id: &id,
-            tags: &tags.clone(),
+        .modify([libpocket::Action::TagsAdd {
+            item_id: &item.item_id,
+            tags: &tags,
             time: now(),
         }])
         .await
@@ -165,15 +165,15 @@ async fn add_replace_and_remove_tags() {
     assert_one_not_modified_item(&res);
 
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
-    assert_eq!(item.tags, Some(expected_tags(tags, id.clone())));
+    assert_eq!(item.tags, Some(expected_tags(&tags, &item.item_id)));
 
     // Replace tags.
-    let tag3 = String::from("tag3");
-    let tag4 = String::from("tag4");
-    let tags = vec![tag3, tag4];
+    let tag3 = "tag3";
+    let tag4 = "tag4";
+    let tags = [tag3, tag4];
     let res = client
-        .modify(vec![libpocket::Action::TagsReplace {
-            item_id: &id,
+        .modify([libpocket::Action::TagsReplace {
+            item_id: &item.item_id,
             tags: &tags,
             time: now(),
         }])
@@ -181,12 +181,12 @@ async fn add_replace_and_remove_tags() {
         .unwrap();
     assert_one_not_modified_item(&res);
     let item = lookup_item_from_given_url(&client, url).await.unwrap();
-    assert_eq!(item.tags, Some(expected_tags(tags.clone(), id.clone())));
+    assert_eq!(item.tags, Some(expected_tags(&tags, &item.item_id)));
 
     // Remove tags.
     let res = client
-        .modify(vec![libpocket::Action::TagsRemove {
-            item_id: &id,
+        .modify([libpocket::Action::TagsRemove {
+            item_id: &item.item_id,
             tags: &tags,
             time: now(),
         }])
@@ -198,16 +198,13 @@ async fn add_replace_and_remove_tags() {
 }
 
 // Small helper function to get the expected `BTreeMap` of tags.
-fn expected_tags(
-    tags: impl IntoIterator<Item = String>,
-    id: libpocket::ItemId,
-) -> BTreeMap<String, Tag> {
-    BTreeMap::from_iter(tags.into_iter().map(|tag| {
+fn expected_tags(tags: &[&str], id: &libpocket::ItemId) -> BTreeMap<String, Tag> {
+    BTreeMap::from_iter(tags.iter().map(|tag| {
         (
-            tag.clone(),
+            (*tag).to_owned(),
             Tag {
                 item_id: id.clone(),
-                tag: tag.clone(),
+                tag: (*tag).to_owned(),
             },
         )
     }))
@@ -233,12 +230,12 @@ fn assert_one_not_modified_item(modify_response: &ModifyResponse) {
     assert_eq!(modified_item_opt, &None);
 }
 
-fn assert_within_2_seconds(t1: u64, t2: u64) {
-    let within_2_seconds = ((t1 as i64) - (t2 as i64)).abs() <= 3;
+fn assert_within_3_seconds(t1: u64, t2: u64) {
+    let within_3_seconds = ((t1 as i64) - (t2 as i64)).abs() <= 3;
 
     assert!(
-        within_2_seconds,
-        "`t1`: {} is not within 2 seconds of `t2`: {}",
+        within_3_seconds,
+        "`t1`: {} is not within 3 seconds of `t2`: {}",
         t1, t2
     );
 }
@@ -267,45 +264,12 @@ fn assert_not_favorited(item: &Item) {
 
 fn assert_contains_items<T: IntoIterator<Item = Item>>(reading_list: &ReadingList, items: T) {
     for item in items {
-        assert_contains_item(reading_list, &item);
+        reading_list.assert_contains_item(&item);
     }
 }
 
-fn assert_contains_item(reading_list: &ReadingList, item: &Item) {
-    assert!(
-        reading_list.contains_item(item),
-        "`reading_list` does not contain item.
-`reading list` = `{:#?}`
-`item` = `{:#?}`",
-        reading_list,
-        item
-    );
-}
-
-fn assert_contains_given_url_once(reading_list: &ReadingList, url: &str) {
-    assert!(
-        reading_list.contains_given_url_once(&url),
-        "`reading_list` does not contain url.
-`reading list` = `{:#?}`
-`url` = `{}`",
-        reading_list,
-        &url
-    );
-}
-
-fn assert_does_not_contain_given_url(reading_list: &ReadingList, url: &str) {
-    assert!(
-        reading_list.does_not_contain_given_url(&url),
-        "`reading_list` contains url.
-`reading list` = `{:#?}`
-`url` = `{}`",
-        reading_list,
-        &url
-    );
-}
-
 async fn lookup_item_from_given_url(client: &Client<'_>, given_url: &str) -> Option<Item> {
-    let res = client
+    let reading_list = client
         .get(
             &GetInputBuilder::default()
                 .state(Some(State::All))
@@ -317,9 +281,9 @@ async fn lookup_item_from_given_url(client: &Client<'_>, given_url: &str) -> Opt
         .await
         .unwrap();
 
-    assert_contains_given_url_once(&res, given_url);
+    reading_list.assert_contains_given_url_once(given_url);
 
-    res.find_given_url(given_url).cloned()
+    reading_list.find_given_url(given_url).cloned()
 }
 
 fn client<'s>() -> Client<'s> {
@@ -352,35 +316,63 @@ fn resource(filename: &str) -> std::io::Result<PathBuf> {
 
 // TODO Maybe some of these are well worth exposing from lib.rs.
 trait ReadingListExt {
-    fn contains_item(&self, item: &Item) -> bool;
-    fn contains_given_url_once(&self, url: &str) -> bool;
-    fn does_not_contain_given_url(&self, url: &str) -> bool;
+    fn assert_contains_item(&self, item: &Item);
+    fn assert_contains_given_url_once(&self, url: &str);
+    fn assert_does_not_contain_given_url(&self, url: &str);
     fn given_url_count(&self, url: &str) -> usize;
     fn find_given_url(&self, url: &str) -> Option<&Item>;
 }
 
 impl ReadingListExt for ReadingList {
-    fn contains_item(&self, item: &Item) -> bool {
+    fn assert_contains_item(&self, item: &Item) {
         if let Some(ItemOrDeletedItem::Item(val)) = self.get(&item.item_id) {
-            TestItem(&val) == TestItem(item)
+            assert_eq!(TestItem(&val), TestItem(item), "expected right");
         } else {
-            false
+            panic!(
+                "`reading_list` does not contain item.
+`reading_list` = `{:#?}`
+`item` = {:#?}",
+                self, item
+            );
         }
     }
 
-    fn contains_given_url_once(&self, url: &str) -> bool {
-        self.given_url_count(url) == 1
+    fn assert_contains_given_url_once(&self, url: &str) {
+        assert_eq!(
+            self.given_url_count(url),
+            1,
+            "`reading_list` does not contain url.
+`reading list given urls` = `{:#?}`
+`url` = `{}`",
+            self.values()
+                .map(|item| match item {
+                    ItemOrDeletedItem::Item(item) => item,
+                    ItemOrDeletedItem::DeletedItem(deleted_item) =>
+                        panic!("unexpected deleted item {:#?}", deleted_item),
+                })
+                .map(|item| item.given_url.as_str())
+                .collect::<Vec<&str>>(),
+            url
+        );
     }
 
-    fn does_not_contain_given_url(&self, url: &str) -> bool {
-        self.given_url_count(url) == 0
+    fn assert_does_not_contain_given_url(&self, url: &str) {
+        assert_eq!(
+            self.given_url_count(url),
+            0,
+            "`reading_list` unexpectedly contains url.
+`reading list` = `{:#?}`
+`url` = `{}`",
+            self,
+            url
+        );
     }
 
     fn given_url_count(&self, url: &str) -> usize {
         self.values()
             .filter(|item_or_deleted_item| {
                 if let ItemOrDeletedItem::Item(item) = item_or_deleted_item {
-                    item.given_url == url.as_ref()
+                    item.given_url.as_str() == url
                 } else {
                     false
                 }
@@ -410,7 +402,7 @@ struct TestItem<'a>(&'a Item);
 impl PartialEq for TestItem<'_> {
     fn eq(&self, other: &Self) -> bool {
         // TODO It's going to be challenging to maintain this list of fields up to date. Is there a
-        // better way?
+        // better way? A macro.
         self.0.given_url == other.0.given_url
             && self.0.resolved_url == other.0.resolved_url
             && self.0.given_title == other.0.given_title

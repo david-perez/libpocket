@@ -213,25 +213,25 @@ pub enum Action<'a> {
     TagsAdd {
         item_id: &'a ItemId,
         #[serde(serialize_with = "join_list")]
-        tags: &'a [String],
+        tags: &'a [&'a str],
         time: u64,
     },
     TagsRemove {
         item_id: &'a ItemId,
         #[serde(serialize_with = "join_list")]
-        tags: &'a [String],
+        tags: &'a [&'a str],
         time: u64,
     },
     TagsReplace {
         item_id: &'a ItemId,
         #[serde(serialize_with = "join_list")]
-        tags: &'a [String],
+        tags: &'a [&'a str],
         time: u64,
     },
     // TODO the rest.
 }
 
-fn join_list<'a, S>(list: &'a [String], serializer: S) -> Result<S::Ok, S::Error>
+fn join_list<'a, S>(list: &'a [&'a str], serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
 {
